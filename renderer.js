@@ -1,43 +1,62 @@
-window.addEventListener('load', function(){ 
+var
+    container,
+    renderer,
+    scene,
+    camera,
+    mesh,
+    start = Date.now(),
+    fov = 30;
 
-    var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera(
-        30, window.innerWidth / window.innerHeight,
-        1, 1000
-    );
+window.addEventListener( 'load', function() {
+
+    container = document.getElementById( "container" );
+
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(
+        fov,
+        window.innerWidth / window.innerHeight,
+        1,
+        10000 );
     camera.position.z = 100;
 
-    var renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.setPixelRatio(window.devicePixelRatio);
-    document.body.appendChild(renderer.domElement);
+    material = new THREE.ShaderMaterial( {
+        vertexShader: document.getElementById( 'vertexShader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+    } );
 
-    // Cube
-    var geometry = new THREE.IcosahedronGeometry(20, 4);
-    var material = new THREE.MeshBasicMaterial({
-        color:0x00aff,
-        wireframe: true});
+    mesh = new THREE.Mesh(
+        new THREE.IcosahedronGeometry( 20, 4 ),
+        material
+    );
+    scene.add( mesh );
 
-    var cube = new THREE.Mesh(geometry,material);
-    scene.add(cube);
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setPixelRatio( window.devicePixelRatio );
 
-    // Orbit controls
-    var controls = new THREE.OrbitControls(camera, renderer.domElement);
+    container.appendChild( renderer.domElement );
+
+    var controls = new THREE.OrbitControls( camera, renderer.domElement );
 
     onWindowResize();
-    window.addEventListener('resize', onWindowResize);
+    window.addEventListener( 'resize', onWindowResize );
+
     render();
 
-    function render(){
-        requestAnimationFrame(render);
-        renderer.render(scene, camera);
-    }
+} );
 
-    function onWindowResize(){
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        // Update camera for correct shape
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-    }
+function onWindowResize () {
 
-})
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+
+}
+
+function render() {
+
+    renderer.render( scene, camera );
+    requestAnimationFrame( render );
+
+}
