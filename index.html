@@ -1,138 +1,100 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <title>Perlin noise | Fireball explosion</title>
-        <meta charset="utf-8">
-        <style>*{box-sizing:border-box; margin:0; padding:0;}</style>
-   </head>
+  <head>
+    <title>Iris</title>
+    <meta charset="utf-8">
+    <style>*{box-sizing:border-box; margin:0; padding:0;}</style>
+  </head>
 
-    <body>
-        <div id="container"></div>
-    </body>
+  <body>
+    <div id="container"></div>
+  </body>
 
-    <script src="js/three.min.js"></script>
-    <script src="js/OrbitControls.js"></script>
+  <script src="js/three.min.js"></script>
+  <script src="js/OrbitControls.js"></script>
 
-    <script type="x-shader/x-vertex" id="vertexShader">
+  <!-- VERTEX SHADER -->
+  <script type="x-shader/x-vertex" id="vertexShader">
+    uniform float time;
+    varying vec2 vUv;
+      
+    void main() {
+        vUv = uv;
+        //vec3 newPosition = position + normal;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    }
+  </script>
 
-      varying vec3 vWorldPosition;
+  <!-- FRAGMENT SHADER -->
+  <script type="x-shader/x-vertex" id="fragmentShader">
+    uniform float time;
+    varying vec2 vUv;
+      
+    void main() {
+        vec2 position = -1.0 + 2.0 * vUv;
+        gl_FragColor = vec4( vec3( vUv, 0.0 ), 1.0 );
 
-			void main() {
-				vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
-				vWorldPosition = worldPosition.xyz;
-				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    }
+  </script>
+
+  <!-- MAIN CODE -->
+  <script type="text/javascript" id="mainCode">
+
+    var container, renderer, scene, camera,
+    mesh, start = Date.now(), fov = 30;
+
+    window.addEventListener( 'load', function() {
+
+      container = document.getElementById( "container" );
+
+      // SCENE AND CAMERA 
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 10000 );
+      camera.position.z = 100;
+
+      // SPHERE
+      geometry = new THREE.IcosahedronGeometry( 20, 4 );
+
+      // MATERIAL
+      var uniforms = {
+        time: { type: "f", value: 0 }
       }
-      
-    </script>
 
-    <script type="x-shader/x-vertex" id="fragmentShader">
-      uniform vec3 topColor;
-			uniform vec3 bottomColor;
-			uniform float offset;
-			uniform float exponent;
-      varying vec3 vWorldPosition;
-      
-			void main() {
-				float h = normalize( vWorldPosition + offset ).y;
-				gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h , 0.0), exponent ), 0.0 ) ), 1.0 );
-			}
-    </script>
+      material = new THREE.ShaderMaterial( {
+        uniforms: uniforms,
+        vertexShader: document.getElementById( 'vertexShader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+      } );
 
-    <script type="text/javascript" id="mainCode">
+      mesh = new THREE.Mesh(geometry, material);
+      scene.add( mesh );
 
- var
-    container,
-    renderer,
-    scene,
-    camera,
-    mesh,
-    start = Date.now(),
-    fov = 30,
-    hemiLight,
-    hemiLightHelper,
-    mixers = [];
+      // RENDERER 
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      renderer.setPixelRatio( window.devicePixelRatio );
+      container.appendChild( renderer.domElement );
 
+      // CONTROLS
+      var controls = new THREE.OrbitControls( camera, renderer.domElement );
 
-window.addEventListener( 'load', function() {
+      onWindowResize();
+      window.addEventListener( 'resize', onWindowResize );
 
-    container = document.getElementById( "container" );
+      render();
 
-    scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera(
-        fov,
-        window.innerWidth / window.innerHeight,
-        1,
-        10000 );
-    camera.position.z = 100;
-
-    // Lights
-
-    hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
-				hemiLight.color.setHSL(1, 1, 1 );
-				hemiLight.groundColor.setHSL( 0.5, 1, 0.75 );
-				hemiLight.position.set( 0, 50, 0 );
-				scene.add( hemiLight );
-				hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 10 );
-				scene.add( hemiLightHelper );
-  
-  
-    var uniforms = {
-					"tExplosion": { type: "t", value: new THREE.TextureLoader().load( 'explosion.png' )},
-          "time": { type: "f", value: 0.0 },
-          "topColor": { value: new THREE.Color( 0xa3a3a3 ) },
-					"bottomColor": { value: new THREE.Color( 0x000000 ) },
-					"offset": { value: 33 },
-					"exponent": { value: 0.6 }
-        };
-
-    uniforms[ "topColor" ].value.copy( hemiLight.color );
-
-
-   material = new THREE.ShaderMaterial( {
-      uniforms: uniforms,
-      vertexShader: document.getElementById( 'vertexShader' ).textContent,
-      fragmentShader: document.getElementById( 'fragmentShader' ).textContent
     } );
 
-    mesh = new THREE.Mesh(
-        new THREE.IcosahedronGeometry( 20, 4 ),
-        material
-    );
-    scene.add( mesh );
+    function onWindowResize () {
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    }
 
-    renderer = new THREE.WebGLRenderer();
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    renderer.setPixelRatio( window.devicePixelRatio );
-
-    container.appendChild( renderer.domElement );
-
-    var controls = new THREE.OrbitControls( camera, renderer.domElement );
-
-    onWindowResize();
-    window.addEventListener( 'resize', onWindowResize );
-
-    render();
-
-} );
-
-function onWindowResize () {
-
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
-}
-
-function render() {
-
-    material.uniforms[ 'time' ].value = .00025 * ( Date.now() - start );
-
-    renderer.render( scene, camera );
-    requestAnimationFrame( render );
-
-}
-
-    </script>
+    function render() {
+      renderer.render( scene, camera );
+      requestAnimationFrame( render );
+    }
+  </script>
 
 </html>
