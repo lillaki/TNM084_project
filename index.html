@@ -13,39 +13,54 @@
   <script src="js/three.min.js"></script>
   <script src="js/OrbitControls.js"></script>
 
+
   <!-- VERTEX SHADER -->
   <script type="x-shader/x-vertex" id="vertexShader">
-    uniform float time;
     varying vec2 vUv;
-      
+    varying float s;
+    varying float t;
+
     void main() {
         vUv = uv;
-        //vec3 newPosition = position + normal;
+        s = uv.x;
+        t = uv.y; 
         gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
     }
   </script>
 
   <!-- FRAGMENT SHADER -->
   <script type="x-shader/x-vertex" id="fragmentShader">
-    uniform float time;
     varying vec2 vUv;
-      
-    void main() {
-        vec2 position = -1.0 + 2.0 * vUv;
-        gl_FragColor = vec4( vec3( vUv, 0.0 ), 1.0 );
+    varying float s;
+    varying float t;
 
+    void main() {
+        vec3 whiteColor = vec3(1., 1., 1.).rgb;
+        gl_FragColor = vec4(mix(vec3( s, t, 0. ), whiteColor, step(t, 0.8)), 1.);
     }
   </script>
 
   <!-- MAIN CODE -->
   <script type="text/javascript" id="mainCode">
 
-    var container, renderer, scene, camera,
+    var container, renderer, scene, camera, controls,
     mesh, start = Date.now(), fov = 30;
+
+    var wireframe, line, linematerial, lights, uniforms;
+
+    var vertexShader = document.getElementById( 'vertexShader' ).textContent;
+    var fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
+
 
     window.addEventListener( 'load', function() {
 
       container = document.getElementById( "container" );
+
+      // RENDERER 
+      renderer = new THREE.WebGLRenderer({ antialias:true, aplha: true });
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      renderer.setPixelRatio( window.devicePixelRatio );
+      container.appendChild( renderer.domElement );
 
       // SCENE AND CAMERA 
       scene = new THREE.Scene();
@@ -53,35 +68,38 @@
       camera.position.z = 100;
 
       // SPHERE
-      geometry = new THREE.IcosahedronGeometry( 20, 4 );
+      geometry = new THREE.IcosahedronGeometry( 15, 4 );
 
       // MATERIAL
-      var uniforms = {
-        time: { type: "f", value: 0 }
-      }
-
       material = new THREE.ShaderMaterial( {
-        uniforms: uniforms,
-        vertexShader: document.getElementById( 'vertexShader' ).textContent,
-        fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
       } );
 
       mesh = new THREE.Mesh(geometry, material);
       scene.add( mesh );
 
-      // RENDERER 
-      renderer = new THREE.WebGLRenderer();
-      renderer.setSize( window.innerWidth, window.innerHeight );
-      renderer.setPixelRatio( window.devicePixelRatio );
-      container.appendChild( renderer.domElement );
-
       // CONTROLS
-      var controls = new THREE.OrbitControls( camera, renderer.domElement );
+      controls = new THREE.OrbitControls( camera, renderer.domElement );
 
       onWindowResize();
       window.addEventListener( 'resize', onWindowResize );
 
+      // RENDER WITH THE SHADERS
       render();
+
+      // WIREFRAME
+      wireframe = new THREE.WireframeGeometry( geometry );
+
+      linematerial = new THREE.LineBasicMaterial({
+        color: 0xffffff
+      }); 
+
+      line = new THREE.LineSegments( wireframe, linematerial );
+      line.material.depthTest = true;
+      line.transparent = false;
+      line.material.opacity = 0.25; 
+      // scene.add( line );
 
     } );
 
