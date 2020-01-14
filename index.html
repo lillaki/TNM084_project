@@ -36,83 +36,85 @@
 
     void main() {
         vec3 whiteColor = vec3(1., 1., 1.).rgb;
-        gl_FragColor = vec4(mix(vec3( s, t, 0. ), whiteColor, step(t, 0.8)), 1.);
+        vec3 blackColor = vec3(0., 0., 0.).rbg;
+        vec3 irisColor  = mix(vec3( s, t, 0. ), whiteColor, step(t, 0.8));
+
+        gl_FragColor = vec4( mix(blackColor, irisColor, step(t, 0.93)), 1. );
     }
   </script>
 
   <!-- MAIN CODE -->
   <script type="text/javascript" id="mainCode">
 
+     // VARIABLES
     var container, renderer, scene, camera, controls,
     mesh, start = Date.now(), fov = 30;
 
     var wireframe, line, linematerial, lights, uniforms;
 
+    // Get shaders by textContent
     var vertexShader = document.getElementById( 'vertexShader' ).textContent;
     var fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
 
+    container = document.getElementById( "container" );
 
-    window.addEventListener( 'load', function() {
+    // RENDERER 
+    renderer = new THREE.WebGLRenderer({ antialias:true, aplha: true });
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setPixelRatio( window.devicePixelRatio );
+    container.appendChild( renderer.domElement );
 
-      container = document.getElementById( "container" );
+    // SCENE AND CAMERA 
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera.position.z = 100;
 
-      // RENDERER 
-      renderer = new THREE.WebGLRenderer({ antialias:true, aplha: true });
-      renderer.setSize( window.innerWidth, window.innerHeight );
-      renderer.setPixelRatio( window.devicePixelRatio );
-      container.appendChild( renderer.domElement );
+    // SPHERE
+    geometry = new THREE.IcosahedronGeometry( 15, 5 );
+    geometry.rotateX( Math.PI / 2 );
 
-      // SCENE AND CAMERA 
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 10000 );
-      camera.position.z = 100;
-
-      // SPHERE
-      geometry = new THREE.IcosahedronGeometry( 15, 4 );
-
-      // MATERIAL
-      material = new THREE.ShaderMaterial( {
-        vertexShader: vertexShader,
-        fragmentShader: fragmentShader,
-      } );
-
-      mesh = new THREE.Mesh(geometry, material);
-      scene.add( mesh );
-
-      // CONTROLS
-      controls = new THREE.OrbitControls( camera, renderer.domElement );
-
-      onWindowResize();
-      window.addEventListener( 'resize', onWindowResize );
-
-      // RENDER WITH THE SHADERS
-      render();
-
-      // WIREFRAME
-      wireframe = new THREE.WireframeGeometry( geometry );
-
-      linematerial = new THREE.LineBasicMaterial({
-        color: 0xffffff
-      }); 
-
-      line = new THREE.LineSegments( wireframe, linematerial );
-      line.material.depthTest = true;
-      line.transparent = false;
-      line.material.opacity = 0.25; 
-      // scene.add( line );
-
+    // MATERIAL
+    material = new THREE.ShaderMaterial( {
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
     } );
 
-    function onWindowResize () {
-      renderer.setSize( window.innerWidth, window.innerHeight );
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-    }
+    // Mesh for debugging purposes
+    mesh = new THREE.Mesh(geometry, material);
+    scene.add( mesh );
 
-    function render() {
-      renderer.render( scene, camera );
-      requestAnimationFrame( render );
-    }
+    // CONTROLS
+    controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+    // RENDER WITH THE SHADERS
+    render();
+
+    // MESH WIREFRAME
+    wireframe = new THREE.WireframeGeometry( geometry );
+    linematerial = new THREE.LineBasicMaterial({
+      color: 0xffffff
+    }); 
+
+    line = new THREE.LineSegments( wireframe, linematerial );
+    line.material.depthTest = true;
+    line.transparent = false;
+    line.material.opacity = 0.25; 
+    // scene.add( line );
+
+  // EVENT LISTENER
+  onWindowResize();
+  window.addEventListener( 'resize', onWindowResize, false );
+
+  function onWindowResize () {
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  }
+
+  function render() {
+    renderer.render( scene, camera );
+    requestAnimationFrame( render );
+  }
   </script>
 
 </html>
