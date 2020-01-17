@@ -505,6 +505,12 @@
     varying float s;
     varying float t;
 
+    uniform float pupilSize;
+    uniform float irisSize;
+    uniform float irisOuterBound;
+    uniform float whiteBlur;
+
+    //
 
     void main() {
 
@@ -517,48 +523,26 @@
 
       vec3 whiteColor = vec3(1.0, 1.0, 1.0).rgb;
       vec3 blackColor = vec3(0.0, 0.0, 0.0).rgb;
-      vec3 pupillaryBoundColor = vec3(1., 1., 1.).rgb;
-      vec3 irisColor = vec3(0., 1.0, 0.).rgb;
+      vec3 pupillaryBoundColor = vec3(0.0, 1.0, 0.0).rgb;
+      vec3 irisColor = vec3(0.74, 0.89, 1.0).rgb; // Lightblue
 
-      vec3 irisBoundryColor = vec3(0.0, 0., 0.).rgb; 
+      vec3 irisBoundryColor = vec3(1.0, 0.0, 0.0).rgb;
 
-      vec3 irisBoundry = mix(irisBoundryColor, whiteColor, smoothstep(0.78, 0.73, t));
-      vec3 irisPupillaryZone = mix(irisColor*irisNoise, irisBoundry, smoothstep(0.85, 0.74, t));
+      vec3 irisBoundry = mix(irisBoundryColor, whiteColor, smoothstep(irisOuterBound, whiteBlur, t));
+      vec3 irisPupillaryZone = mix(irisColor*irisNoise, irisBoundry, smoothstep(irisSize, irisSize - 0.07, t));
+      vec3 pupillaryBound  = mix(pupillaryBoundColor, irisPupillaryZone, smoothstep(pupilSize, pupilSize - 0.015, t));
 
-      float pInner = 0.96;
-      float pOuter = 0.94;
-      float pBoundInner = 0.95;
-      float pBoundOuter = 0.94; 
-      
-      vec3 pupillaryBound  = mix(pupillaryBoundColor*pupilNoise, irisPupillaryZone, smoothstep(pBoundInner, pBoundOuter, t));
-      vec4 pupil = vec4(mix(blackColor, pupillaryBound, smoothstep(pInner, pOuter, t)), 0.5);
-
-      gl_FragColor = pupil;
+      gl_FragColor = vec4(pupillaryBound, 0.5);
     }
   </script>
-  
-  <!-- <script src="js/three.js"></script>
-  <script type="module" src="js/OrbitControls.js"></script> -->
+
 
   <!-- MAIN CODE -->
   <script type="module" id="mainCode">
 
-    //import * as THREE from './node_modules/three/build/three.module.js';
-    //import OrbitControls from './jsm//controls/OrbitControls.js';
-    //OrbitControls.install({THREE: THREE});
-
-    //var THREE = require(['./node_modules/three/build/three.module.js'])
-    //var OrbitControls = require(['./node_modules/three-orbit-controls/index.js'])(THREE)
-
-    //import * as THREE from './node_modules/three/build/three.module.js';
-    //import Stats from './node_modules/three/jsm/libs/stats.module.js';
-
-    //import { WEBGL } from './node_modules/three/examples/jsm/WebGL.js';
-    //import { OrbitControls } from './jsm//controls/OrbitControls.js';
-
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.112.0/build/three.module.js";
     import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.112.0/examples/jsm/controls/OrbitControls.js";
-    import {color, controllers, dom, gui, GUI} from "/dat.gui.module.js";
+    import {color, controllers, dom, gui, GUI} from "./dat.gui.module.js";
 
      // VARIABLES
     var container, canvas, context, renderer, scene, camera, controls, geometry,
@@ -594,8 +578,18 @@
     geometry = new THREE.IcosahedronGeometry( 15, 5 );
     geometry.rotateX( Math.PI / 2 );
 
+    // UNIFORMS FOR THE SHADERS
+    var uniforms = THREE.UniformsUtils.merge([
+          { pupilSize: { value: 0.93 },
+            irisSize: { value: 0.86 },
+            whiteBlur: { value: 0.75 },
+            irisOuterBound: { value: 0.80 }
+            }
+      ]);
+
     // MATERIAL
     material = new THREE.ShaderMaterial( {
+      uniforms: uniforms, 
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
     } );
@@ -607,10 +601,14 @@
     // DAT.GUI 
     // Creating a GUI with options.
     var myGui = new gui.GUI({name: 'My GUI'});
+    var bFolder = myGui.addFolder('Bounderies');
+    var cFolder = myGui.addFolder('Colors');
     
     // Add a string controller.
-    var irisSize = {'iris size': 2.0};
-    myGui.add(irisSize, 'iris size', 0, 10, 0.5);
+    bFolder.add(material.uniforms.pupilSize, 'value', 0, 1, 0.01).name('pupilSize');
+    bFolder.add(material.uniforms.irisSize, 'value', 0, 1, 0.01).name('irisSize');
+    bFolder.add(material.uniforms.whiteBlur, 'value', 0, 1, 0.01).name('whiteBlur');
+    bFolder.add(material.uniforms.irisOuterBound, 'value', 0, 1, 0.01).name('irisOuterBound');
 
     // RENDER WITH THE SHADERS
     render();
