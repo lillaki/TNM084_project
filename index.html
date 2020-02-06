@@ -10,25 +10,104 @@
     <div id="container"></div>
   </body>
 
+
   <!-- <script src="/build/three.min.js"></script>
   <script type="module" src="/jsm/controls/OrbitControls.js"></script> -->
 
   <!-- VERTEX SHADER -->
+
   <script type="x-shader/x-vertex" id="vertexShader">
     varying vec2 vUv;
     varying float s;
     varying float t;
 
+    varying vec3 Normal;
+    varying vec3 Position;
+
     void main() {
-        vUv = uv;
-        s = uv.x;
-        t = uv.y; 
-        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+      vUv = uv;
+      s = uv.x;
+      t = uv.y;
+
+      Normal = normalize(normalMatrix * normal);
+      Position = vec3(modelViewMatrix * vec4(position, 1.0));
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
+
   </script>
 
   <!-- FRAGMENT SHADER -->
   <script type="x-shader/x-vertex" id="fragmentShader">
+
+
+
+// Cellular noise ("Worley noise") in 2D in GLSL.
+// Copyright (c) Stefan Gustavson 2011-04-19. All rights reserved.
+// This code is released under the conditions of the MIT license.
+// See LICENSE file for details.
+// https://github.com/stegu/webgl-noise
+
+// Modulo 289 without a division (only multiplications)
+vec3 mod289(vec3 x) {
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec2 mod289(vec2 x) {
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+// Modulo 7 without a division
+vec3 mod7(vec3 x) {
+  return x - floor(x * (1.0 / 7.0)) * 7.0;
+}
+
+// Permutation polynomial: (34x^2 + x) mod 289
+vec3 permute(vec3 x) {
+  return mod289((34.0 * x + 1.0) * x);
+}
+
+// Cellular noise, returning F1 and F2 in a vec2.
+// Standard 3x3 search window for good F1 and F2 values
+vec2 cellular(vec2 P) {
+#define K 0.142857142857 // 1/7
+#define Ko 0.428571428571 // 3/7
+#define jitter 0.8 // Less gives more regular pattern
+	vec2 Pi = mod289(floor(P));
+ 	vec2 Pf = fract(P);
+	vec3 oi = vec3(-1.0, 0.0, 1.0);
+	vec3 of = vec3(-0.5, 0.5, 1.5);
+	vec3 px = permute(Pi.x + oi);
+	vec3 p = permute(px.x + Pi.y + oi); // p11, p12, p13
+	vec3 ox = fract(p*K) - Ko;
+	vec3 oy = mod7(floor(p*K))*K - Ko;
+	vec3 dx = Pf.x + 0.5 + jitter*ox;
+	vec3 dy = Pf.y - of + jitter*oy;
+	vec3 d1 = dx * dx + dy * dy; // d11, d12 and d13, squared
+	p = permute(px.y + Pi.y + oi); // p21, p22, p23
+	ox = fract(p*K) - Ko;
+	oy = mod7(floor(p*K))*K - Ko;
+	dx = Pf.x - 0.5 + jitter*ox;
+	dy = Pf.y - of + jitter*oy;
+	vec3 d2 = dx * dx + dy * dy; // d21, d22 and d23, squared
+	p = permute(px.z + Pi.y + oi); // p31, p32, p33
+	ox = fract(p*K) - Ko;
+	oy = mod7(floor(p*K))*K - Ko;
+	dx = Pf.x - 1.5 + jitter*ox;
+	dy = Pf.y - of + jitter*oy;
+	vec3 d3 = dx * dx + dy * dy; // d31, d32 and d33, squared
+	// Sort out the two smallest distances (F1, F2)
+	vec3 d1a = min(d1, d2);
+	d2 = max(d1, d2); // Swap to keep candidates for F2
+	d2 = min(d2, d3); // neither F1 nor F2 are now in d3
+	d1 = min(d1a, d2); // F1 is now in d1
+	d2 = max(d1a, d2); // Swap to keep candidates for F2
+	d1.xy = (d1.x < d1.y) ? d1.xy : d1.yx; // Swap if smaller
+	d1.xz = (d1.x < d1.z) ? d1.xz : d1.zx; // F1 is in d1.x
+	d1.yz = min(d1.yz, d2.yz); // F2 is now not in d2.yz
+	d1.y = min(d1.y, d1.z); // nor in  d1.z
+	d1.y = min(d1.y, d2.x); // F2 is in d1.y, we're done.
+	return sqrt(d1.xy);
+} // END OF CELLULAR NOISE
 
     //
     // vec3  psrdnoise(vec2 pos, vec2 per, float rot)
@@ -99,18 +178,9 @@
     // (If you run into problems with this, please let me know.)
     //
 
-    // Modulo 289, optimizes to code without divisions
-    vec3 mod289(vec3 x) {
-      return x - floor(x * (1.0 / 289.0)) * 289.0;
-    }
 
     float mod289(float x) {
       return x - floor(x * (1.0 / 289.0)) * 289.0;
-    }
-
-    // Permutation polynomial (ring size 289 = 17*17)
-    vec3 permute(vec3 x) {
-      return mod289(((x*34.0)+1.0)*x);
     }
 
     float permute(float x) {
@@ -510,29 +580,58 @@
     uniform float irisOuterBound;
     uniform float whiteBlur;
 
-    //
+    varying vec3 Normal;
+    varying vec3 Position;
+
+    uniform vec3 Ka;
+    uniform vec3 Kd;
+    uniform vec3 Ks;
+    uniform vec4 LightPosition;
+    uniform vec3 LightIntensity;
+    uniform float Shininess;
+
+    // PHONG MODEL
+
+    vec3 phong() {
+      vec3 n = normalize(Normal);
+      vec3 s = normalize(vec3(LightPosition) - Position);
+      vec3 v = normalize(vec3(-Position));
+      vec3 r = reflect(-s, n);
+
+      vec3 ambient = Ka;
+      vec3 diffuse = Kd * max(dot(s, n), 0.0);
+      vec3 specular = Ks * pow(max(dot(r, v), 0.0), Shininess);
+
+      return LightIntensity * (ambient + diffuse + specular);
+    }
 
     void main() {
 
       float pupilNoise = 0.0;
-      float irisNoise = 0.0; 
+      float irisNoiseStripes = 0.0;
+      vec2 irisNoiseHoles = vec2(0.0);
 
       // Noise
       pupilNoise = psnoise(vec2(s*5.0,t*0.5)*10.0, vec2(10.0))*0.2;
-      irisNoise = psnoise(vec2(s*0.3,s)*10.0, vec2(1.))*0.3 + 0.5;
+      irisNoiseStripes = psnoise(vec2(s*0.3,s)*10.0, vec2(1.))*0.3 + 0.5;
+      irisNoiseHoles = cellular(vec2(s*10.0,t*10.0))*4.0;
 
       vec3 whiteColor = vec3(1.0, 1.0, 1.0).rgb;
       vec3 blackColor = vec3(0.0, 0.0, 0.0).rgb;
-      vec3 pupillaryBoundColor = vec3(0.0, 1.0, 0.0).rgb;
+      vec3 pupillaryBoundColor = vec3(0.0, 0.0, 0.0).rgb;
       vec3 irisColor = vec3(0.74, 0.89, 1.0).rgb; // Lightblue
+      vec3 irisColor2 = vec3(0.0, 1.0, 0.0).rgb; // Green
 
       vec3 irisBoundryColor = vec3(1.0, 0.0, 0.0).rgb;
 
+      //vec3 finalIris = mix(irisColor2, irisColor*irisNoiseStripes, vec3(step(irisNoiseHoles, vec2(0.2, 0.0)), 1.0) );
+      vec3 finalIris = mix(irisColor2, irisColor*irisNoiseStripes, step(0.5, irisNoiseHoles.x));
+
       vec3 irisBoundry = mix(irisBoundryColor, whiteColor, smoothstep(irisOuterBound, whiteBlur, t));
-      vec3 irisPupillaryZone = mix(irisColor*irisNoise, irisBoundry, smoothstep(irisSize, irisSize - 0.07, t));
+      vec3 irisPupillaryZone = mix(finalIris, irisBoundry, smoothstep(irisSize, irisSize - 0.07, t));
       vec3 pupillaryBound  = mix(pupillaryBoundColor, irisPupillaryZone, smoothstep(pupilSize, pupilSize - 0.015, t));
 
-      gl_FragColor = vec4(pupillaryBound, 0.5);
+      gl_FragColor = vec4(phong()*pupillaryBound, 1.0);
     }
   </script>
 
@@ -543,7 +642,7 @@
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.112.0/build/three.module.js";
     import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.112.0/examples/jsm/controls/OrbitControls.js";
     import {color, controllers, dom, gui, GUI} from "./dat.gui.module.js";
-
+ 
      // VARIABLES
     var container, canvas, context, renderer, scene, camera, controls, geometry,
     mesh, start = Date.now(), fov = 30;
@@ -578,20 +677,37 @@
     geometry = new THREE.IcosahedronGeometry( 15, 5 );
     geometry.rotateX( Math.PI / 2 );
 
+    // LIGHTS
+    var light = new THREE.PointLight( 0xa5ccff, 1 );
+    light.position.set(300,300,0);
+    scene.add( light );
+
+    var phongShader = THREE.ShaderLib.phong;
+
     // UNIFORMS FOR THE SHADERS
     var uniforms = THREE.UniformsUtils.merge([
           { pupilSize: { value: 0.93 },
             irisSize: { value: 0.86 },
             whiteBlur: { value: 0.75 },
-            irisOuterBound: { value: 0.80 }
+            irisOuterBound: { value: 0.80 },
+            Ka: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
+            Kd: { value: new THREE.Vector3(0.9, 0.7, 0.5) },
+            Ks: { value: new THREE.Vector3(0.8, 0.8, 0.8) },
+            LightIntensity: { value: new THREE.Vector4(0.6, 0.6, 0.6, 1.0) },
+            LightPosition: { value: new THREE.Vector4(60.0, 30.0, 30.0, 1.0) },
+            Shininess: { value: 100.0 }
             }
       ]);
+      
+    // Add the light uniforms
+    var mUniforms = THREE.UniformsUtils.merge([phongShader.uniforms, uniforms]);
 
     // MATERIAL
     material = new THREE.ShaderMaterial( {
-      uniforms: uniforms, 
+      uniforms: mUniforms, 
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
+      lights: true,
     } );
 
     // Mesh for debugging purposes
@@ -608,6 +724,7 @@
     bFolder.add(material.uniforms.pupilSize, 'value', 0, 1, 0.01).name('pupilSize');
     bFolder.add(material.uniforms.irisSize, 'value', 0, 1, 0.01).name('irisSize');
     bFolder.add(material.uniforms.whiteBlur, 'value', 0, 1, 0.01).name('whiteBlur');
+    bFolder.add(material.uniforms.irisOuterBound, 'value', 0, 1, 0.01).name('irisOuterBound');
     bFolder.add(material.uniforms.irisOuterBound, 'value', 0, 1, 0.01).name('irisOuterBound');
 
     // RENDER WITH THE SHADERS
