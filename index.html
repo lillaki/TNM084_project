@@ -17,14 +17,22 @@
   <!-- VERTEX SHADER -->
   <script type="x-shader/x-vertex" id="vertexShader">
 
-    varying vec3 Normal;
-    varying vec3 Position;
-    varying vec2 uVu; 
+    varying vec2 uVu;
+    varying vec3 vReflect;
+    varying vec3 vNormal;
+    varying vec3 vWorldPosition;
+
+    uniform vec3 cameraPos;
 
     void main() {
       uVu = uv; 
-      Normal = normalize(normalMatrix * normal);
-      Position = vec3(modelViewMatrix * vec4(position, 1.0));
+
+      vNormal = normalize(normalMatrix * normal);
+      vec3 worldPosition = ( modelMatrix * vec4( position, 1.0 )).xyz;
+      vec3 cameraToVertex = normalize( worldPosition - cameraPosition );
+      vReflect = reflect( cameraToVertex, vNormal );
+      vWorldPosition = worldPosition;
+
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
 
@@ -523,11 +531,13 @@
         return f;
     }
 
-
-    varying vec3 Normal;
-    varying vec3 Position;
-    uniform vec2 resolution;
+    varying vec3 vReflect;
+    varying vec3 vNormal;
+    varying vec3 vWorldPosition;
     varying vec2 uVu; 
+
+    uniform vec2 resolution;
+    uniform samplerCube reflectionSampler;
 
     // GUI
     uniform float pupilSize;
@@ -540,6 +550,7 @@
     uniform float outerCircle;
 
     uniform bool innerColorOn;
+    uniform bool lightsOn; 
 
     uniform vec3 innerColor;
     uniform vec3 irisGroundColor;
@@ -556,11 +567,18 @@
     uniform vec3 LightIntensity;
     uniform float Shininess;
 
+    // Camera
+    uniform vec3 cameraPos;
+    uniform float cameraZoom; 
+    uniform vec3 iResolution;
+    uniform vec3 fragCoord; 
+    const vec3 CamLook = vec3(0,0,0);
+
     // Phong model
     vec3 phong() {
-      vec3 n = normalize(Normal);
-      vec3 s = normalize(vec3(LightPosition) - Position);
-      vec3 v = normalize(vec3(-Position));
+      vec3 n = normalize(vNormal);
+      vec3 s = normalize(vec3(LightPosition) - vWorldPosition);
+      vec3 v = normalize(vec3(-vWorldPosition));
       vec3 r = reflect(-s, n);
 
       vec3 ambient = Ka;
@@ -569,6 +587,7 @@
 
       return LightIntensity * (ambient + diffuse + specular);
     }
+
 
     void main(){
 
@@ -643,9 +662,19 @@
       float v = 0.5*fbm(vec2(16.0*a, r), vec2(16.0));
 
       vec3 sclera = mix(vec3( 1.0 ), vec3( 1.0, 0.0, 0.0 ), smoothstep( 0.1, 0.4, v));
-      finalColor = mix(finalColor, sclera, smoothstep(0.2, 0.5, uVu.y));
+      finalColor = mix(finalColor, sclera, smoothstep( 0.2, 0.5, uVu.y));
 
-      gl_FragColor = vec4( phong()*finalColor, 1.0 );
+      // Reflection 
+      vec3 reflectVec = vReflect;
+      vec4 reflection = textureCube( reflectionSampler, vec3( 1.0 * reflectVec.x, reflectVec.yz ) );
+      //finalColor = mix(finalColor, reflection.xyz, 0.5);
+
+      if(lightsOn){
+        gl_FragColor = vec4( phong()*finalColor + 0.5*reflection.xyz, 1.0 );
+      }
+      else{
+        gl_FragColor = vec4( finalColor, 1.0 );
+      }
 
     }
 
@@ -660,8 +689,8 @@
     import {color, controllers, dom, gui, GUI} from "./dat.gui.module.js";
 
      // VARIABLES
-    var container, canvas, context, renderer, scene, camera, controls, geometry, lights,
-    mesh, start = Date.now(), fov = 30;
+    var container, canvas, context, renderer, scene, camera, cubeCamera, controls, geometry, lights,
+    mesh, otherMesh,start = Date.now(), fov = 30;
 
     var wireframe, line, material, linematerial, lights, uniforms;
 
@@ -686,6 +715,10 @@
     camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 10000 );
     camera.position.z = 100;
 
+    // CUBECAMERA - for reflection
+    cubeCamera = new THREE.CubeCamera( 0.1, 1000, 128 );
+    scene.add(cubeCamera);
+
     // CONTROLS
     controls = new OrbitControls( camera, renderer.domElement );
 
@@ -698,7 +731,6 @@
     var light = new THREE.PointLight( 0xa5ccff, 1 );
     light.position.set(300,300,0);
     scene.add( light );
-
     var phongShader = THREE.ShaderLib.phong;
 
     // UNIFORMS FOR THE SHADERS
@@ -718,12 +750,16 @@
             lightFiber: { value: new THREE.Color(255.0, 255.0, 255.0).toArray() },
             darkFiber: { value: new THREE.Color(0.0, 0.0, 0.0).toArray() },
             innerColorOn: { value: Boolean(true) },
+            lightsOn: { value: Boolean(true) },
             Ka: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
             Kd: { value: new THREE.Vector3(0.9, 0.7, 0.5) },
-            Ks: { value: new THREE.Vector3(0.8, 0.8, 0.8) },
+            Ks: { value: new THREE.Vector3(0.8, 0.6, 0.4) },
             LightIntensity: { value: new THREE.Vector4(0.8, 0.8, 0.8, 1.0) },
             LightPosition: { value: new THREE.Vector4(-1000.0, 900.0, -300.0, 1.0) },
-            Shininess: { value: 20.0 }
+            Shininess: { value: 20.0 },
+            cameraPos: { value: new THREE.Vector3(camera.position.clone()) },
+            cameraZoom: { value: new THREE.Vector3(camera.zoom) },
+            reflectionSampler: { value: cubeCamera.renderTarget },
             }
       ]);
 
@@ -735,8 +771,20 @@
       uniforms: lightUniforms,
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
-      lights: true
+      lights: true,
     } );
+      
+    // CREATE MESH
+    mesh = new THREE.Mesh(geometry, material);
+    scene.add( mesh );
+      
+    var reflectionSphere = new THREE.SphereGeometry( 5, 20, 50, 50 );
+    otherMesh = new THREE.Mesh(reflectionSphere, new THREE.MeshBasicMaterial({
+        color: 0xffffff
+    }));
+    otherMesh.position.x = -25;
+    scene.add(otherMesh);
+
 
     // DAT.GUI 
     // Creating a GUI with options.
@@ -745,6 +793,7 @@
     var cFolder = myGui.addFolder('Colors');
     
     // String controllers
+    bFolder.add(material.uniforms.lightsOn, 'value', true).name('lightsOn');
     bFolder.add(material.uniforms.pupilSize, 'value', 0.0, 0.2, 0.001).name('pupilSize');
     bFolder.add(material.uniforms.irisSize, 'value', 0.0, 1.0, 0.001).name('irisSize');
     bFolder.add(material.uniforms.whiteBlur, 'value', 0.0, 3.0, 0.01).name('whiteBlur');
@@ -763,11 +812,6 @@
     cFolder.addColor(material.uniforms.lightFiber, 'value').name('Light fiber');
     cFolder.addColor(material.uniforms.darkFiber, 'value').name('Dark fiber');
     cFolder.addColor(material.uniforms.spotColor, 'value').name('Spot Color');
-
-
-    // Mesh for debugging purposes
-    mesh = new THREE.Mesh(geometry, material);
-    scene.add( mesh );
 
     // RENDER WITH THE SHADERS
     render();
@@ -794,7 +838,16 @@
       camera.updateProjectionMatrix();
     }
 
+
     function render() {
+
+      otherMesh.position.x = 20 * Math.sin( new Date() * 0.001 );
+      otherMesh.position.z = 20 * Math.cos( new Date() * 0.001 );
+
+      mesh.visible = false;
+      cubeCamera.update(renderer, scene);
+      mesh.visible = true;
+
       renderer.render( scene, camera );
       requestAnimationFrame( render );
     }
