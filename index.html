@@ -635,9 +635,12 @@
     myGui.remember(material.uniforms.innerColorSize);
 
     myGui.remember(material.uniforms.spotSize);
+    myGui.remember(material.uniforms.spotDensity);
     myGui.remember(material.uniforms.waveSize);
+    myGui.remember(material.uniforms.waveDensity);
     myGui.remember(material.uniforms.lightFiberOn);
     myGui.remember(material.uniforms.darkFiberOn);
+    myGui.remember(material.uniforms.outerCircle);
 
     myGui.remember(material.uniforms.irisGroundColor);
     myGui.remember(material.uniforms.irisColor2);
@@ -661,6 +664,7 @@
     lightFolder.add(material.uniforms.LightPosZ, 'value', -10000, 10000, 1.0).name('Light pos Z');
     lightFolder.add(material.uniforms.Shininess, 'value', 1.0, 20.0, 1.0).name('Shine');
     lightFolder.add(material.uniforms.lightIntensity, 'value', 0.0, 1.0, 0.01).name('Intensity');
+
     lightFolder.addColor(material.uniforms.Ka, 'value').name('Ambilight color');
     lightFolder.addColor(material.uniforms.Kd, 'value').name('Diffuse color');
     lightFolder.addColor(material.uniforms.Ks, 'value').name('Specular color');
@@ -681,7 +685,6 @@
     // True or false
     bFolder.add(material.uniforms.lightFiberOn, 'value', false).name('lightFibers ON');
     bFolder.add(material.uniforms.darkFiberOn, 'value', false).name('darkFiber ON');
-  
 
     // Colors
     cFolder.addColor(material.uniforms.irisGroundColor, 'value').name('Ground Color');
@@ -726,7 +729,7 @@
 
     function getPresetJSON() {
       return {
-  "preset": "Blue",
+  "preset": "Vampire",
   "remembered": {
     "Blue": {
       "0": {
@@ -775,7 +778,7 @@
         "value": 0.2
       },
       "11": {
-        "value": 0.5
+        "value": 0.113
       },
       "12": {
         "value": 20
@@ -790,56 +793,65 @@
         "value": 7
       },
       "16": {
-        "value": 0.023
+        "value": 8
       },
       "17": {
-        "value": true
+        "value": 0.03
       },
       "18": {
-        "value": true
+        "value": 3.383
       },
       "19": {
+        "value": true
+      },
+      "20": {
+        "value": true
+      },
+      "21": {
+        "value": 0.7000000000000001
+      },
+      "22": {
         "value": [
           42,
           79,
           94
         ]
       },
-      "20": {
+      "23": {
         "value": [
           137,
           159,
           214
         ]
       },
-      "21": {
+      "24": {
         "value": true
       },
-      "22": {
+      "25": {
         "value": true
       },
-      "23": {
+      "26": {
         "value": [
           148,
           108,
           5
         ]
       },
-      "24": {
+      "27": {
         "value": [
           255,
           255,
           255
         ]
       },
-      "25": {
+      "28": {
         "value": [
           0,
           0,
           0
         ]
       },
-      "26": {
+      "29": {
         "value": [
           81,
           66,
@@ -864,7 +876,7 @@
         "value": 10
       },
       "5": {
-        "value": 0.66
+        "value": 0.7000000000000001
       },
       "6": {
         "value": [
@@ -888,81 +900,218 @@
         ]
       },
       "9": {
-        "value": 0.04
+        "value": 0.051000000000000004
       },
       "10": {
-        "value": 0.2
+        "value": 0.201
       },
       "11": {
-        "value": 0.554
+        "value": 0.774
       },
       "12": {
-        "value": 9
+        "value": 6
       },
       "13": {
-        "value": 12
+        "value": 9
       },
       "14": {
-        "value": 0.10400000000000001
+        "value": 0.137
       },
       "15": {
         "value": 7
       },
       "16": {
-        "value": 0
+        "value": 3
       },
       "17": {
-        "value": false
+        "value": 0
       },
       "18": {
-        "value": true
+        "value": 0
       },
       "19": {
-        "value": [
-          170.6615982055664,
-          93.48898785123042,
-          23.507218528222293
-        ]
+        "value": false
       },
       "20": {
-        "value": [
-          38.05070343017578,
-          20.36894750704709,
-          0
-        ]
+        "value": true
       },
       "21": {
-        "value": true
+        "value": 0.75
       },
       "22": {
-        "value": true
+        "value": [
+          198.8528995513916,
+          101.63232459735306,
+          13.470633310186667
+        ]
       },
       "23": {
         "value": [
-          78.81809692382812,
-          35.46060099666115,
-          11.6447195687145
+          137.64202423095705,
+          86.96856522087302,
+          28.59398799764737
         ]
       },
       "24": {
+        "value": true
+      },
+      "25": {
+        "value": true
+      },
+      "26": {
+        "value": [
+          96.80941772460938,
+          50.69728598612145,
+          8.494222811534998
+        ]
+      },
+      "27": {
         "value": [
           255,
           255,
           255
         ]
       },
-      "25": {
+      "28": {
         "value": [
           0,
           0,
           0
         ]
       },
+      "29": {
+        "value": [
+          78.92681121826172,
+          41.09772895164724,
+          14.028585539851342
+        ]
+      }
+    },
+    "Vampire": {
+      "0": {
+        "value": true
+      },
+      "1": {
+        "value": -1000
+      },
+      "2": {
+        "value": 900
+      },
+      "3": {
+        "value": -300
+      },
+      "4": {
+        "value": 10
+      },
+      "5": {
+        "value": 0.7000000000000001
+      },
+      "6": {
+        "value": [
+          255,
+          255,
+          255
+        ]
+      },
+      "7": {
+        "value": [
+          204,
+          153,
+          102
+        ]
+      },
+      "8": {
+        "value": [
+          204,
+          153,
+          102
+        ]
+      },
+      "9": {
+        "value": 0.029
+      },
+      "10": {
+        "value": 0.201
+      },
+      "11": {
+        "value": 0.366
+      },
+      "12": {
+        "value": 5
+      },
+      "13": {
+        "value": 0
+      },
+      "14": {
+        "value": 0.113
+      },
+      "15": {
+        "value": 8
+      },
+      "16": {
+        "value": 46
+      },
+      "17": {
+        "value": 0
+      },
+      "18": {
+        "value": 0
+      },
+      "19": {
+        "value": false
+      },
+      "20": {
+        "value": true
+      },
+      "21": {
+        "value": 0.8300000000000001
+      },
+      "22": {
+        "value": [
+          175.9028995513916,
+          0,
+          0
+        ]
+      },
+      "23": {
+        "value": [
+          114.69202423095705,
+          4.328671881314372,
+          11.1010236158607
+        ]
+      },
+      "24": {
+        "value": true
+      },
+      "25": {
+        "value": true
+      },
       "26": {
         "value": [
-          71.27681121826171,
-          33.3750782188261,
-          6.253948531184343
+          63.659417724609376,
+          0,
+          0
+        ]
+      },
+      "27": {
+        "value": [
+          255,
+          255,
+          255
+        ]
+      },
+      "28": {
+        "value": [
+          0,
+          0,
+          0
+        ]
+      },
+      "29": {
+        "value": [
+          104.42681121826172,
+          6.029781523738062,
+          6.029781523738062
         ]
       }
     }
@@ -986,6 +1135,7 @@
     }
   }
 }
+
     }
 
 
