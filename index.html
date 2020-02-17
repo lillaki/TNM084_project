@@ -22,8 +22,6 @@
     varying vec3 vNormal;
     varying vec3 vWorldPosition;
 
-    uniform vec3 cameraPos;
-
     void main() {
       uVu = uv;
 
@@ -362,6 +360,7 @@
     uniform float noiseContrast;
     uniform float noiseAngle;
     uniform float noiseRadius;
+    uniform float innerColorSize;
 
     uniform bool innerColorOn;
     uniform bool lightsOn;
@@ -386,12 +385,8 @@
     uniform float LightPosY;
     uniform float LightPosZ;
 
-    // Camera
-    uniform vec3 cameraPos;
-    uniform float cameraZoom; 
     uniform vec3 iResolution;
-    uniform vec3 fragCoord; 
-    const vec3 CamLook = vec3(0,0,0);
+    uniform vec3 fragCoord;
 
     // Phong model
     vec3 phong() {
@@ -448,7 +443,7 @@
 
         // Inner color
         if( innerColorOn ){ 
-          f = 1.0 - smoothstep( pupilSize, pupilSize + 0.07, r);
+          f = 1.0 - smoothstep( pupilSize, innerColorSize, r);
           finalColor = mix( finalColor, innerColor, f);
         }
 
@@ -575,6 +570,7 @@
             noiseContrast: { value: 0.5 },
             noiseAngle: { value: 20.0 },
             noiseRadius: { value: 1.0 },
+            innerColorSize: { value: 0.13 },
             innerColor: { value: new THREE.Color(148.0, 108.0, 5.0).toArray() },
             irisGroundColor: { value: new THREE.Color(42.0, 79.0, 94.0).toArray() },
             irisColor2: { value: new THREE.Color(137.0, 159.0, 214.0).toArray() },
@@ -594,8 +590,6 @@
             LightPosY: { value: 900.0 },
             LightPosZ: { value: -300 },
             Shininess: { value: 10.0 },
-            cameraPos: { value: new THREE.Vector3(camera.position.clone()) },
-            cameraZoom: { value: new THREE.Vector3(camera.zoom) },
             }
       ]);
 
@@ -638,6 +632,7 @@
     myGui.remember(material.uniforms.noiseContrast);
     myGui.remember(material.uniforms.noiseAngle);
     myGui.remember(material.uniforms.noiseRadius);
+    myGui.remember(material.uniforms.innerColorSize);
 
     myGui.remember(material.uniforms.spotSize);
     myGui.remember(material.uniforms.waveSize);
@@ -679,6 +674,8 @@
     bFolder.add(material.uniforms.spotDensity, 'value', 0.0, 60, 1.0).name('Spot density');
     bFolder.add(material.uniforms.waveSize, 'value', 0.0, 0.5, 0.001).name('Wave size');
     bFolder.add(material.uniforms.waveDensity, 'value', 0.0, 30.0, 0.001).name('Wave density');
+    bFolder.add(material.uniforms.innerColorSize, 'value', 0.0, 0.2, 0.001).name('Inner color size');
+
     bFolder.add(material.uniforms.outerCircle, 'value', 0.0, 1.5, 0.01).name('Outer circle');
 
     // True or false
@@ -729,376 +726,266 @@
 
     function getPresetJSON() {
       return {
-        "preset": "Blue",
-        "remembered": {
-          "Blue": {
-            "0": {
-              "value": true
-            },
-            "1": {
-              "value": -1000
-            },
-            "2": {
-              "value": 900
-            },
-            "3": {
-              "value": -300
-            },
-            "4": {
-              "value": 10
-            },
-            "5": {
-              "value": 0.7000000000000001
-            },
-            "6": {
-              "value": [
-                255,
-                255,
-                255
-              ]
-            },
-            "7": {
-              "value": [
-                204,
-                153,
-                102
-              ]
-            },
-            "8": {
-              "value": [
-                204,
-                153,
-                102
-              ]
-            },
-            "9": {
-              "value": 0.048
-            },
-            "10": {
-              "value": 0.2
-            },
-            "11": {
-              "value": 0.5
-            },
-            "12": {
-              "value": 20
-            },
-            "13": {
-              "value": 9
-            },
-            "14": {
-              "value": 7
-            },
-            "15": {
-              "value": 0.03
-            },
-            "16": {
-              "value": true
-            },
-            "17": {
-              "value": true
-            },
-            "18": {
-              "value": [
-                42,
-                79,
-                94
-              ]
-            },
-            "19": {
-              "value": [
-                137,
-                159,
-                214
-              ]
-            },
-            "20": {
-              "value": true
-            },
-            "21": {
-              "value": true
-            },
-            "22": {
-              "value": [
-                148,
-                108,
-                5
-              ]
-            },
-            "23": {
-              "value": [
-                255,
-                255,
-                255
-              ]
-            },
-            "24": {
-              "value": [
-                0,
-                0,
-                0
-              ]
-            },
-            "25": {
-              "value": [
-                81,
-                66,
-                14
-              ]
-            }
-          },
-          "Vampire": {
-            "0": {
-              "value": true
-            },
-            "1": {
-              "value": -1000
-            },
-            "2": {
-              "value": 900
-            },
-            "3": {
-              "value": -300
-            },
-            "4": {
-              "value": 10
-            },
-            "5": {
-              "value": 0.7000000000000001
-            },
-            "6": {
-              "value": [
-                255,
-                255,
-                255
-              ]
-            },
-            "7": {
-              "value": [
-                204,
-                153,
-                102
-              ]
-            },
-            "8": {
-              "value": [
-                204,
-                153,
-                102
-              ]
-            },
-            "9": {
-              "value": 0.03
-            },
-            "10": {
-              "value": 0.2
-            },
-            "11": {
-              "value": 0.5
-            },
-            "12": {
-              "value": 20
-            },
-            "13": {
-              "value": 15
-            },
-            "14": {
-              "value": 0
-            },
-            "15": {
-              "value": 0.043000000000000003
-            },
-            "16": {
-              "value": false
-            },
-            "17": {
-              "value": true
-            },
-            "18": {
-              "value": [
-                173.3528995513916,
-                0,
-                0
-              ]
-            },
-            "19": {
-              "value": [
-                137,
-                159,
-                214
-              ]
-            },
-            "20": {
-              "value": false
-            },
-            "21": {
-              "value": true
-            },
-            "22": {
-              "value": [
-                58.42899169921876,
-                0,
-                0
-              ]
-            },
-            "23": {
-              "value": [
-                255,
-                84.73302612304688,
-                84.73302612304688
-              ]
-            },
-            "24": {
-              "value": [
-                0,
-                0,
-                0
-              ]
-            },
-            "25": {
-              "value": [
-                17.72681121826172,
-                13.758122139546408,
-                0
-              ]
-            }
-          },
-          "Brown": {
-            "0": {
-              "value": true
-            },
-            "1": {
-              "value": -1000
-            },
-            "2": {
-              "value": 900
-            },
-            "3": {
-              "value": -300
-            },
-            "4": {
-              "value": 10
-            },
-            "5": {
-              "value": 0.7000000000000001
-            },
-            "6": {
-              "value": [
-                255,
-                255,
-                255
-              ]
-            },
-            "7": {
-              "value": [
-                204,
-                153,
-                102
-              ]
-            },
-            "8": {
-              "value": [
-                204,
-                153,
-                102
-              ]
-            },
-            "9": {
-              "value": 0.052000000000000005
-            },
-            "10": {
-              "value": 0.196
-            },
-            "11": {
-              "value": 0.383
-            },
-            "12": {
-              "value": 10
-            },
-            "13": {
-              "value": 25
-            },
-            "14": {
-              "value": 7
-            },
-            "15": {
-              "value": 0
-            },
-            "16": {
-              "value": false
-            },
-            "17": {
-              "value": true
-            },
-            "18": {
-              "value": [
-                142.62249298095705,
-                77.23384709091745,
-                1.7523137107584563
-              ]
-            },
-            "19": {
-              "value": [
-                50.811598205566405,
-                2.823448921040643,
-                0
-              ]
-            },
-            "20": {
-              "value": true
-            },
-            "21": {
-              "value": false
-            },
-            "22": {
-              "value": [
-                148,
-                108,
-                5
-              ]
-            },
-            "23": {
-              "value": [
-                255,
-                255,
-                255
-              ]
-            },
-            "24": {
-              "value": [
-                33.037705993652345,
-                17.753068616182535,
-                0
-              ]
-            },
-            "25": {
-              "value": [
-                76.37681121826172,
-                22.691660628371867,
-                0
-              ]
-            }
-          },
-        },
-        "closed": false,
-        "folders": {
-          "Iris details": {
-            "preset": "Default",
-            "closed": true,
-            "folders": {}
-          },
-          "Colors": {
-            "preset": "Default",
-            "closed": true,
-            "folders": {}
-          },
-          "Lights": {
-            "preset": "Default",
-            "closed": true,
-            "folders": {}
-          }
-        }
+  "preset": "Blue",
+  "remembered": {
+    "Blue": {
+      "0": {
+        "value": true
+      },
+      "1": {
+        "value": -1000
+      },
+      "2": {
+        "value": 900
+      },
+      "3": {
+        "value": -300
+      },
+      "4": {
+        "value": 10
+      },
+      "5": {
+        "value": 0.7000000000000001
+      },
+      "6": {
+        "value": [
+          255,
+          255,
+          255
+        ]
+      },
+      "7": {
+        "value": [
+          204,
+          153,
+          102
+        ]
+      },
+      "8": {
+        "value": [
+          204,
+          153,
+          102
+        ]
+      },
+      "9": {
+        "value": 0.04
+      },
+      "10": {
+        "value": 0.2
+      },
+      "11": {
+        "value": 0.5
+      },
+      "12": {
+        "value": 20
+      },
+      "13": {
+        "value": 1
+      },
+      "14": {
+        "value": 0.13
+      },
+      "15": {
+        "value": 7
+      },
+      "16": {
+        "value": 0.023
+      },
+      "17": {
+        "value": true
+      },
+      "18": {
+        "value": true
+      },
+      "19": {
+        "value": [
+          42,
+          79,
+          94
+        ]
+      },
+      "20": {
+        "value": [
+          137,
+          159,
+          214
+        ]
+      },
+      "21": {
+        "value": true
+      },
+      "22": {
+        "value": true
+      },
+      "23": {
+        "value": [
+          148,
+          108,
+          5
+        ]
+      },
+      "24": {
+        "value": [
+          255,
+          255,
+          255
+        ]
+      },
+      "25": {
+        "value": [
+          0,
+          0,
+          0
+        ]
+      },
+      "26": {
+        "value": [
+          81,
+          66,
+          14
+        ]
       }
+    },
+    "Brown": {
+      "0": {
+        "value": true
+      },
+      "1": {
+        "value": -1000
+      },
+      "2": {
+        "value": 900
+      },
+      "3": {
+        "value": -300
+      },
+      "4": {
+        "value": 10
+      },
+      "5": {
+        "value": 0.66
+      },
+      "6": {
+        "value": [
+          255,
+          255,
+          255
+        ]
+      },
+      "7": {
+        "value": [
+          204,
+          153,
+          102
+        ]
+      },
+      "8": {
+        "value": [
+          204,
+          153,
+          102
+        ]
+      },
+      "9": {
+        "value": 0.04
+      },
+      "10": {
+        "value": 0.2
+      },
+      "11": {
+        "value": 0.554
+      },
+      "12": {
+        "value": 9
+      },
+      "13": {
+        "value": 12
+      },
+      "14": {
+        "value": 0.10400000000000001
+      },
+      "15": {
+        "value": 7
+      },
+      "16": {
+        "value": 0
+      },
+      "17": {
+        "value": false
+      },
+      "18": {
+        "value": true
+      },
+      "19": {
+        "value": [
+          170.6615982055664,
+          93.48898785123042,
+          23.507218528222293
+        ]
+      },
+      "20": {
+        "value": [
+          38.05070343017578,
+          20.36894750704709,
+          0
+        ]
+      },
+      "21": {
+        "value": true
+      },
+      "22": {
+        "value": true
+      },
+      "23": {
+        "value": [
+          78.81809692382812,
+          35.46060099666115,
+          11.6447195687145
+        ]
+      },
+      "24": {
+        "value": [
+          255,
+          255,
+          255
+        ]
+      },
+      "25": {
+        "value": [
+          0,
+          0,
+          0
+        ]
+      },
+      "26": {
+        "value": [
+          71.27681121826171,
+          33.3750782188261,
+          6.253948531184343
+        ]
+      }
+    }
+  },
+  "closed": false,
+  "folders": {
+    "Iris details": {
+      "preset": "Default",
+      "closed": true,
+      "folders": {}
+    },
+    "Colors": {
+      "preset": "Default",
+      "closed": true,
+      "folders": {}
+    },
+    "Lights": {
+      "preset": "Default",
+      "closed": true,
+      "folders": {}
+    }
+  }
+}
     }
 
 
