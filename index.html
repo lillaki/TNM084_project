@@ -381,7 +381,7 @@
 
         // Inner color
         if( innerColorOn ){ 
-          f = 1.0 - smoothstep( pupilSize, innerColorSize, radius);
+          f = 1.0 - smoothstep( pupilSize, pupilSize+innerColorSize, radius);
           finalColor = mix( finalColor, innerColor, f);
         }
 
@@ -564,7 +564,7 @@
     });
 
     // Function to remeber values of the parameters in gui
-    rememberParam();
+    rememberParams();
 
     // Create different folders for GUI
     var irisFolder = myGui.addFolder('Iris details');
@@ -572,7 +572,7 @@
     var lightFolder = myGui.addFolder('Lights');
 
     // Defines and adds all the parameters to folders in GUI
-    addParameters();
+    addParams();
 
     // RENDER WITH THE SHADERS
     render();
@@ -605,7 +605,7 @@
     }
 
     // Defines and adds all the parameters to folders in GUI
-    function addParameters() {
+    function addParams() {
 
       // Lights
       lightFolder.add(material.uniforms.lightsOn, 'value', true).name('Environment lights');
@@ -650,7 +650,7 @@
     }
 
     // Remebers all the parameters in GUI
-    function rememberParam() {
+    function rememberParams() {
 
     // Remeber all the variables - Better way to do this?
       myGui.remember(material.uniforms.lightsOn);
