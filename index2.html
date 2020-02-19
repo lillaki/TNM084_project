@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Iris</title>
+    <meta charset="utf-8">
+    <style>*{box-sizing:border-box; margin:0; padding:0;}</style>
+  </head>
+
+  <body>
+    <div id="container"></div>
+  </body>
+
+  <!-- <script src="/build/three.min.js"></script>
+  <script type="module" src="/jsm/controls/OrbitControls.js"></script> -->
+
+
+  <!-- VERTEX SHADER -->
+  <script type="x-shader/x-vertex" id="vertexShader">
+
+    varying vec3 Normal;
+    varying vec3 Position;
+
+    void main() {
+      Normal = normalize(normalMatrix * normal);
+      Position = vec3(modelViewMatrix * vec4(position, 1.0));
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+
+  </script>
+
+  <!-- FRAGMENT SHADER -->
+  <script type="x-shader/x-vertex" id="fragmentShader">
+
+    varying vec3 Normal;
+    varying vec3 Position;
+
+    uniform vec3 Ka;
+    uniform vec3 Kd;
+    uniform vec3 Ks;
+    uniform vec4 LightPosition;
+    uniform vec3 LightIntensity;
+    uniform float Shininess;
+
+    vec3 phong() {
+      vec3 n = normalize(Normal);
+      vec3 s = normalize(vec3(LightPosition) - Position);
+      vec3 v = normalize(vec3(-Position));
+      vec3 r = reflect(-s, n);
+
+      vec3 ambient = Ka;
+      vec3 diffuse = Kd * max(dot(s, n), 0.0);
+      vec3 specular = Ks * pow(max(dot(r, v), 0.0), Shininess);
+
+      return LightIntensity * (ambient + diffuse + specular);
+    }
+
+    void main() {
+      gl_FragColor = vec4(phong(), 1.0);
+    }
+
+  </script>
+
+
+  <!-- MAIN CODE -->
+  <script type="module" id="mainCode">
+
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.112.0/build/three.module.js";
+    import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.112.0/examples/jsm/controls/OrbitControls.js";
+    import {color, controllers, dom, gui, GUI} from "./dat.gui.module.js";
+
+     // VARIABLES
+    var container, canvas, context, renderer, scene, camera, controls, geometry,
+    mesh, start = Date.now(), fov = 30;
+
+    var wireframe, line, material, linematerial, lights, uniforms;
+
+    // Get shaders by textContent
+    var vertexShader = document.getElementById( 'vertexShader' ).textContent;
+    var fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
+
+    container = document.getElementById( "container" );
+
+    // WEBGL 
+    canvas = document.createElement( 'canvas' );
+    context = canvas.getContext( 'webgl2', { alpha: false } );
+
+    // RENDERER 
+    renderer = new THREE.WebGLRenderer( { canvas: canvas, context: context } );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setPixelRatio( window.devicePixelRatio );
+    container.appendChild( renderer.domElement );
+
+    // SCENE AND CAMERA 
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera.position.z = 100;
+
+    // CONTROLS
+    controls = new OrbitControls( camera, renderer.domElement );
+
+    // SPHERE
+    geometry = new THREE.IcosahedronGeometry( 15, 5 );
+    geometry.rotateX( Math.PI / 2 );
+
+    // CIRCLE
+    //var geometryCircle = new THREE.CircleGeometry( 10, 32 );
+    //var materialCircle = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+    //var circle = new THREE.Mesh( geometryCircle, materialCircle );
+    //scene.add( circle );
+
+    // UNIFORMS FOR THE SHADERS
+    var uniforms = THREE.UniformsUtils.merge([
+          { Ka: { value: new THREE.Vector3(0.9, 0.5, 0.3) },
+            Kd: { value: new THREE.Vector3(0.9, 0.5, 0.3) },
+            Ks: { value: new THREE.Vector3(0.8, 0.8, 0.8) },
+            LightIntensity: { value: new THREE.Vector4(0.5, 0.5, 0.5, 1.0) },
+            LightPosition: { value: new THREE.Vector4(0.0, 2000.0, 0.0, 1.0) },
+            Shininess: { value: 200.0 }
+            }
+      ]);
+
+    // MATERIAL
+    material = new THREE.ShaderMaterial( {
+      uniforms: uniforms, 
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+    } );
+
+    // Mesh for debugging purposes
+    mesh = new THREE.Mesh(geometry, material);
+    scene.add( mesh );
+
+    // RENDER WITH THE SHADERS
+    render();
+
+    // MESH WIREFRAME
+    wireframe = new THREE.WireframeGeometry( geometry, material );
+    linematerial = new THREE.LineBasicMaterial({
+      color: 0xffffff
+    }); 
+
+    line = new THREE.LineSegments( wireframe, linematerial );
+    line.material.depthTest = true;
+    line.transparent = false;
+    line.material.opacity = 0.25; 
+    // scene.add( line );
+
+  // EVENT LISTENER
+  onWindowResize();
+  window.addEventListener( 'resize', onWindowResize, false );
+
+  function onWindowResize () {
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  }
+
+  function render() {
+    renderer.render( scene, camera );
+    requestAnimationFrame( render );
+  }
+  </script>
+
+</html>

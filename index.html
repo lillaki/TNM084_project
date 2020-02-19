@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <title>Iris</title>
+    <title>Procedural Iris</title>
     <meta charset="utf-8">
     <style>*{box-sizing:border-box; margin:0; padding:0;}</style>
   </head>
@@ -9,10 +9,6 @@
   <body>
     <div id="container"></div>
   </body>
-
-  <!-- <script src="/build/three.min.js"></script>
-  <script type="module" src="/jsm/controls/OrbitControls.js"></script> -->
-
 
   <!-- VERTEX SHADER -->
   <script type="x-shader/x-vertex" id="vertexShader">
@@ -43,52 +39,6 @@
 
     // ------------------v NOISE v---------------------------- //
 
-    // vec3  psrdnoise(vec2 pos, vec2 per, float rot)
-    // vec3  psdnoise(vec2 pos, vec2 per)
-    // float psrnoise(vec2 pos, vec2 per, float rot)
-    // float psnoise(vec2 pos, vec2 per)
-    // vec3  srdnoise(vec2 pos, float rot)
-    // vec3  sdnoise(vec2 pos)
-    // float srnoise(vec2 pos, float rot)
-    // float snoise(vec2 pos)
-    //
-    // Periodic (tiling) 2-D simplex noise (hexagonal lattice gradient noise)
-    // with rotating gradients and analytic derivatives.
-    // Variants also without the derivative (no "d" in the name), without
-    // the tiling property (no "p" in the name) and without the rotating
-    // gradients (no "r" in the name).
-    //
-    // This is (yet) another variation on simplex noise. It's similar to the
-    // version presented by Ken Perlin, but the grid is axis-aligned and
-    // slightly stretched in the y direction to permit rectangular tiling.
-    //
-    // The noise can be made to tile seamlessly to any integer period in x and
-    // any even integer period in y. Odd periods may be specified for y, but
-    // then the actual tiling period will be twice that number.
-    //
-    // The rotating gradients give the appearance of a swirling motion, and can
-    // serve a similar purpose for animation as motion along z in 3-D noise.
-    // The rotating gradients in conjunction with the analytic derivatives
-    // can make "flow noise" effects as presented by Perlin and Neyret.
-    //
-    // vec3 {p}s{r}dnoise(vec2 pos {, vec2 per} {, float rot})
-    // "pos" is the input (x,y) coordinate
-    // "per" is the x and y period, where per.x is a positive integer
-    //    and per.y is a positive even integer
-    // "rot" is the angle to rotate the gradients (any float value,
-    //    where 0.0 is no rotation and 1.0 is one full turn)
-    // The first component of the 3-element return vector is the noise value.
-    // The second and third components are the x and y partial derivatives.
-    //
-    // float {p}s{r}noise(vec2 pos {, vec2 per} {, float rot})
-    // "pos" is the input (x,y) coordinate
-    // "per" is the x and y period, where per.x is a positive integer
-    //    and per.y is a positive even integer
-    // "rot" is the angle to rotate the gradients (any float value,
-    //    where 0.0 is no rotation and 1.0 is one full turn)
-    // The return value is the noise value.
-    // Partial derivatives are not computed, making these functions faster.
-    //
     // Author: Stefan Gustavson (stefan.gustavson@gmail.com)
     // Version 2016-05-10.
     //
@@ -98,17 +48,6 @@
     // Copyright (c) 2016 Stefan Gustavson. All rights reserved.
     // Distributed under the MIT license. See LICENSE file.
     // https://github.com/stegu/webgl-noise
-    //
-
-    //
-    // TODO: One-pixel wide artefacts used to occur due to precision issues with
-    // the gradient indexing. This is specific to this variant of noise, because
-    // one axis of the simplex grid is perfectly aligned with the input x axis.
-    // The errors were rare, and they are now very unlikely to ever be visible
-    // after a quick fix was introduced: a small offset is added to the y coordinate.
-    // A proper fix would involve using round() instead of floor() in selected
-    // places, but the quick fix works fine.
-    // (If you run into problems with this, please let me know.)
     //
 
     // Modulo 289, optimizes to code without divisions
@@ -325,7 +264,6 @@
       return psrnoise(pos, per, 0.0);
     }
 
-
     // ------------------ ^ NOISE ^ -------------------------- //
     
 
@@ -349,7 +287,7 @@
     varying vec3 vWorldPosition;
     varying vec2 uVu;
 
-    // GUI
+    // Parameter values in gui
     uniform float pupilSize;
     uniform float irisSize;
     uniform float spotSize;
@@ -375,7 +313,7 @@
     uniform vec3 lightFiber;
     uniform vec3 darkFiber;
 
-    // Lights
+    // Lights parameters
     uniform vec3 Ka;
     uniform vec3 Kd;
     uniform vec3 Ks;
@@ -385,16 +323,16 @@
     uniform float LightPosY;
     uniform float LightPosZ;
 
-    uniform vec3 iResolution;
-    uniform vec3 fragCoord;
-
     // Phong model
     vec3 phong() {
       vec3 LightPosition = vec3(LightPosX, LightPosY, LightPosZ);
       vec3 LightIntensity = vec3(lightIntensity);
-      vec3 Ka = Ka/255.0; // Normalize color
-      vec3 Kd = Kd/255.0; // Normalize color
-      vec3 Ks = Ks/255.0; // Normalize color
+
+      // Normalize colors
+      // Input from gui is 0-255
+      vec3 Ka = Ka/255.0;
+      vec3 Kd = Kd/255.0;
+      vec3 Ks = Ks/255.0; 
 
       vec3 n = normalize(vNormal);
       vec3 s = normalize(vec3(LightPosition) - vWorldPosition);
@@ -411,81 +349,81 @@
 
     void main(){
 
-      float r = sqrt(dot(uVu.y, uVu.y));
-      float a = uVu.x;
+      float radius = uVu.y;
+      float angle = uVu.x;
       float outerCircle = outerCircle;
 
       // Colors
-      vec3 innerColor = innerColor/255.0; // Normalize color between 0-1
+      // Normalize color from GUI
+      vec3 innerColor = innerColor/255.0;
       vec3 irisColor2 = irisColor2/255.0;
       vec3 spotColor = spotColor/255.0;
       vec3 lightFiber = lightFiber/255.0;
-      vec3 darkFiber = darkFiber/255.0; 
-
+      vec3 darkFiber = darkFiber/255.0;
       vec3 finalColor = vec3(1.0);
 
-      // Draw the iris, r = 0 in the iris center
-      if( r < irisSize ){
+      // Draw the iris, radius = 0 in the iris center
+      if( radius < irisSize ){
 
-        // The final color of the iris (when r < 0.2)
+        // The final color of the iris (when radius < 0.2)
         finalColor = irisGroundColor/255.0; 
 
         // Deform the angle to create waves in iris 
-        float q = a;
-        q += waveSize*fbm(vec2(0.0, waveDensity*r), vec2(1.0));
+        float defAngle = angle;
+        defAngle += waveSize*fbm(vec2(0.0, waveDensity*radius), vec2(1.0));
         
         // Mix iris colors with fbm
         // Multiply noiseAngle with 2.0 to always have even numbers for the periods to work correctly
-        float f = noiseContrast*fbm( vec2(2.0*noiseAngle*q, noiseRadius*r), vec2(2.0));
+        float f = noiseContrast*fbm( vec2(2.0*noiseAngle*defAngle, noiseRadius*radius), vec2(2.0));
         if(irisColor2On){
           finalColor = mix(finalColor, irisColor2, f);
         }
 
         // Inner color
         if( innerColorOn ){ 
-          f = 1.0 - smoothstep( pupilSize, innerColorSize, r);
+          f = 1.0 - smoothstep( pupilSize, innerColorSize, radius);
           finalColor = mix( finalColor, innerColor, f);
         }
 
         // Light fibers
         if(lightFiberOn){
           // Use smoothstep to add contrast
-          f = 0.7*fbm(vec2(10.0*q, 3.5*r), vec2(10.0)) + 0.2; // Add 0.2 for brighter white
+          f = 0.7*fbm(vec2(10.0*defAngle, 3.5*radius), vec2(10.0)) + 0.2; // Add 0.2 for brighter white
           finalColor = mix( finalColor, lightFiber, f );
         }
         
         // Dark fibers
         if(darkFiberOn){
-          f = fbm(vec2(9.0*q, 3.0*r), vec2(9.0));
+          f = fbm(vec2(9.0*defAngle, 3.0*radius), vec2(9.0));
           finalColor = mix( finalColor, darkFiber, f );
         }
 
         // Colored Spots
-        f = 3.0*fbm( vec2(2.0*spotDensity*a, 20.0*r), vec2(2.0)) + 0.3;
-        float g = fbm( vec2(2.0*spotSize*a, 2.0*spotSize*r), vec2(2.0));
+        f = 3.0*fbm( vec2(2.0*spotDensity*angle, 20.0*radius), vec2(2.0)) + 0.3;
+        float g = fbm( vec2(2.0*spotSize*angle, 2.0*spotSize*radius), vec2(2.0));
         f *= g;
         f = smoothstep(0.0, 1.0, f); 
         finalColor = mix(finalColor, spotColor, f);
 
         // Outer circle of iris
-        f = 1.0 - outerCircle*smoothstep( irisSize-0.1, irisSize, r );
+        f = 1.0 - outerCircle*smoothstep( irisSize-0.1, irisSize, radius );
         finalColor *= f;  // Multiply with f to add contrast
 
         // Pupil
-        f = smoothstep( pupilSize -0.007, pupilSize + 0.007, r );
+        f = smoothstep( pupilSize -0.007, pupilSize + 0.007, radius );
         finalColor *= f;
 
         // Smoothen the iris edges
-        f = smoothstep( irisSize-0.03, irisSize, r);
+        f = smoothstep( irisSize-0.03, irisSize, radius);
         finalColor = mix(finalColor, vec3(1.0), f);
 
       }
 
       // Deform the angle to create wave formation in veins 
-      a += 0.5*fbm(vec2(2.0*a, r), vec2(2.0));
+      angle += 0.5*fbm(vec2(2.0*angle, radius), vec2(2.0));
 
       // Add veins to the sclera
-      float v = 0.5*fbm(vec2(16.0*a, r), vec2(16.0));
+      float v = 0.5*fbm(vec2(16.0*angle, radius), vec2(16.0));
 
       vec3 sclera = mix(vec3( 1.0 ), vec3( 1.0, 0.0, 0.0 ), smoothstep( 0.1, 0.4, v));
       finalColor = mix(finalColor, sclera, smoothstep( 0.2, 0.5, uVu.y));
@@ -505,7 +443,6 @@
 
   </script>
 
-
   <!-- MAIN CODE -->
   <script type="module" id="mainCode">
 
@@ -514,15 +451,14 @@
     import {color, controllers, dom, gui, GUI} from "./dat.gui.module.js";
 
      // VARIABLES
-    var container, canvas, context, renderer, scene, camera, cubeCamera, controls, geometry, lights,
-    mesh, otherMesh,start = Date.now(), fov = 30;
-
-    var wireframe, line, material, linematerial, lights, uniforms;
+    var container, canvas, context, renderer, scene, 
+    camera, cubeCamera, controls, geometry, lights,
+    mesh, otherMesh, wireframe, line, material, 
+    linematerial, uniforms, fov = 30;
 
     // Get shaders by textContent
     var vertexShader = document.getElementById( 'vertexShader' ).textContent;
     var fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
-
     container = document.getElementById( "container" );
 
     // WEBGL 
@@ -552,53 +488,65 @@
     geometry.rotateX( Math.PI / 2 );
     geometry.rotateY( Math.PI ); // Rotation makes it easier to code, 0 is in the middle of iris
 
-    // LIGHTS
+    // LIGHTS WITH PHONG 
     var light = new THREE.PointLight( 0xa5ccff, 1 );
     light.position.set(300,300,0);
     scene.add( light );
     var phongShader = THREE.ShaderLib.phong;
 
-    // UNIFORMS FOR THE SHADERS
-    var uniforms = THREE.UniformsUtils.merge([
-          { pupilSize: { value: 0.04 },
-            irisSize: { value: 0.2 },
-            spotSize: { value: 7.0 },
-            spotDensity: { value: 8.0 },
-            waveSize: { value: 0.03 },
-            waveDensity: { value: 6.0 },
-            outerCircle: { value: 0.7 },
-            noiseContrast: { value: 0.5 },
-            noiseAngle: { value: 20.0 },
-            noiseRadius: { value: 1.0 },
-            innerColorSize: { value: 0.13 },
-            innerColor: { value: new THREE.Color(148.0, 108.0, 5.0).toArray() },
-            irisGroundColor: { value: new THREE.Color(42.0, 79.0, 94.0).toArray() },
-            irisColor2: { value: new THREE.Color(137.0, 159.0, 214.0).toArray() },
-            spotColor: { value: new THREE.Color(81.0, 66.0, 14.0).toArray() },
-            lightFiber: { value: new THREE.Color(255.0, 255.0, 255.0).toArray() },
-            darkFiber: { value: new THREE.Color(0.0, 0.0, 0.0).toArray() },
-            lightFiberOn: { value: Boolean(true) },
-            darkFiberOn: { value: Boolean(true) },
-            innerColorOn: { value: Boolean(true) },
-            lightsOn: { value: Boolean(true) },
-            irisColor2On: { value: Boolean(true)},
-            Ka: { value: new THREE.Color(255.0, 255.0, 255.0).toArray() },
-            Kd: { value: new THREE.Color(204.0, 153.0, 102.0).toArray() },
-            Ks: { value: new THREE.Color(204.0, 153.0, 102.0).toArray() },
-            lightIntensity: { value: 0.7 },
-            LightPosX: { value: -1000.0 },
-            LightPosY: { value: 900.0 },
-            LightPosZ: { value: -300 },
-            Shininess: { value: 10.0 },
-            }
-      ]);
+    // IRIS VALUE UNIFORMS
+    var irisUniforms = THREE.UniformsUtils.merge([{ 
+      pupilSize: { value: 0.04 },
+      irisSize: { value: 0.2 },
+      spotSize: { value: 7.0 },
+      spotDensity: { value: 8.0 },
+      waveSize: { value: 0.03 },
+      waveDensity: { value: 6.0 },
+      outerCircle: { value: 0.7 },
+      noiseContrast: { value: 0.5 },
+      noiseAngle: { value: 20.0 },
+      noiseRadius: { value: 1.0 },
+      innerColorSize: { value: 0.13 },
+      lightFiberOn: { value: Boolean(true) },
+      darkFiberOn: { value: Boolean(true) }
+    }]);
 
-    // Add the light uniforms
-    var lightUniforms = THREE.UniformsUtils.merge([phongShader.uniforms, uniforms]);
+    // LIGHT UNIFORMS
+    var lightUniforms = THREE.UniformsUtils.merge([{
+      Ka: { value: new THREE.Color(255.0, 255.0, 255.0).toArray() },
+      Kd: { value: new THREE.Color(204.0, 153.0, 102.0).toArray() },
+      Ks: { value: new THREE.Color(204.0, 153.0, 102.0).toArray() },
+      lightIntensity: { value: 0.7 },
+      LightPosX: { value: -1000.0 },
+      LightPosY: { value: 900.0 },
+      LightPosZ: { value: -300 },
+      Shininess: { value: 10.0 },
+      lightsOn: { value: Boolean(true) }
+    }]);
+
+    // COLOR UNIFORMS
+    var colorUniforms = THREE.UniformsUtils.merge([{ 
+      innerColor: { value: new THREE.Color(148.0, 108.0, 5.0).toArray() },
+      irisGroundColor: { value: new THREE.Color(42.0, 79.0, 94.0).toArray() },
+      irisColor2: { value: new THREE.Color(137.0, 159.0, 214.0).toArray() },
+      spotColor: { value: new THREE.Color(81.0, 66.0, 14.0).toArray() },
+      lightFiber: { value: new THREE.Color(255.0, 255.0, 255.0).toArray() },
+      darkFiber: { value: new THREE.Color(0.0, 0.0, 0.0).toArray() },
+      innerColorOn: { value: Boolean(true) },
+      irisColor2On: { value: Boolean(true)}
+    }]);
+
+    // Merge all the uniform together
+    var allUniforms = THREE.UniformsUtils.merge([
+      phongShader.uniforms, 
+      irisUniforms, 
+      lightUniforms, 
+      colorUniforms
+    ]);
 
     // MATERIAL
     material = new THREE.ShaderMaterial( {
-      uniforms: lightUniforms,
+      uniforms: allUniforms,
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
       lights: true,
@@ -615,87 +563,16 @@
       preset: 'Blue'
     });
 
-    // Remeber all the variables - Better way to do this?
-    myGui.remember(material.uniforms.lightsOn);
-    myGui.remember(material.uniforms.LightPosX);
-    myGui.remember(material.uniforms.LightPosY);
-    myGui.remember(material.uniforms.LightPosZ);
-    myGui.remember(material.uniforms.Shininess);
-    myGui.remember(material.uniforms.lightIntensity);
+    // Function to remeber values of the parameters in gui
+    rememberParam();
 
-    myGui.remember(material.uniforms.Ka);
-    myGui.remember(material.uniforms.Kd);
-    myGui.remember(material.uniforms.Ks);
-
-    myGui.remember(material.uniforms.pupilSize);
-    myGui.remember(material.uniforms.irisSize);
-    myGui.remember(material.uniforms.noiseContrast);
-    myGui.remember(material.uniforms.noiseAngle);
-    myGui.remember(material.uniforms.noiseRadius);
-    myGui.remember(material.uniforms.innerColorSize);
-
-    myGui.remember(material.uniforms.spotSize);
-    myGui.remember(material.uniforms.spotDensity);
-    myGui.remember(material.uniforms.waveSize);
-    myGui.remember(material.uniforms.waveDensity);
-    myGui.remember(material.uniforms.lightFiberOn);
-    myGui.remember(material.uniforms.darkFiberOn);
-    myGui.remember(material.uniforms.outerCircle);
-
-    myGui.remember(material.uniforms.irisGroundColor);
-    myGui.remember(material.uniforms.irisColor2);
-    myGui.remember(material.uniforms.irisColor2On);
-    myGui.remember(material.uniforms.innerColorOn);
-    myGui.remember(material.uniforms.innerColor);
-    myGui.remember(material.uniforms.lightFiber);
-    myGui.remember(material.uniforms.darkFiber);
-    myGui.remember(material.uniforms.spotColor);
-
-
-    var bFolder = myGui.addFolder('Iris details');
-    var cFolder = myGui.addFolder('Colors');
+    // Create different folders for GUI
+    var irisFolder = myGui.addFolder('Iris details');
+    var colorFolder = myGui.addFolder('Colors');
     var lightFolder = myGui.addFolder('Lights');
 
-    
-    // String controllers
-    lightFolder.add(material.uniforms.lightsOn, 'value', true).name('Lights ON');
-    lightFolder.add(material.uniforms.LightPosX, 'value', -10000, 10000, 1.0).name('Light pos X');
-    lightFolder.add(material.uniforms.LightPosY, 'value', -10000, 10000, 1.0).name('Light pos Y');
-    lightFolder.add(material.uniforms.LightPosZ, 'value', -10000, 10000, 1.0).name('Light pos Z');
-    lightFolder.add(material.uniforms.Shininess, 'value', 1.0, 20.0, 1.0).name('Shine');
-    lightFolder.add(material.uniforms.lightIntensity, 'value', 0.0, 1.0, 0.01).name('Intensity');
-
-    lightFolder.addColor(material.uniforms.Ka, 'value').name('Ambilight color');
-    lightFolder.addColor(material.uniforms.Kd, 'value').name('Diffuse color');
-    lightFolder.addColor(material.uniforms.Ks, 'value').name('Specular color');
-
-    bFolder.add(material.uniforms.pupilSize, 'value', 0.0, 0.2, 0.001).name('Pupil size');
-    bFolder.add(material.uniforms.irisSize, 'value', 0.0, 1.0, 0.001).name('Iris size');
-    bFolder.add(material.uniforms.noiseContrast, 'value', 0.0, 1.0, 0.001).name('Noise constrast');
-    bFolder.add(material.uniforms.noiseAngle, 'value', 0.0, 100.0, 1.0).name('Noise angle');
-    bFolder.add(material.uniforms.noiseRadius, 'value', 0.0, 100.0, 1.0).name('Noise radius');
-    bFolder.add(material.uniforms.spotSize, 'value', 0.0, 60, 1.0).name('Spot size');
-    bFolder.add(material.uniforms.spotDensity, 'value', 0.0, 60, 1.0).name('Spot density');
-    bFolder.add(material.uniforms.waveSize, 'value', 0.0, 0.5, 0.001).name('Wave size');
-    bFolder.add(material.uniforms.waveDensity, 'value', 0.0, 30.0, 0.001).name('Wave density');
-    bFolder.add(material.uniforms.innerColorSize, 'value', 0.0, 0.2, 0.001).name('Inner color size');
-
-    bFolder.add(material.uniforms.outerCircle, 'value', 0.0, 1.5, 0.01).name('Outer circle');
-
-    // True or false
-    bFolder.add(material.uniforms.lightFiberOn, 'value', false).name('lightFibers ON');
-    bFolder.add(material.uniforms.darkFiberOn, 'value', false).name('darkFiber ON');
-
-    // Colors
-    cFolder.addColor(material.uniforms.irisGroundColor, 'value').name('Ground Color');
-    cFolder.addColor(material.uniforms.irisColor2, 'value').name('Second color');
-    cFolder.add(material.uniforms.irisColor2On, 'value', true).name('Second color ON');
-
-    cFolder.add(material.uniforms.innerColorOn, 'value', false).name('Inner color ON');
-    cFolder.addColor(material.uniforms.innerColor, 'value').name('Inner Color');
-    cFolder.addColor(material.uniforms.lightFiber, 'value').name('Light fiber');
-    cFolder.addColor(material.uniforms.darkFiber, 'value').name('Dark fiber');
-    cFolder.addColor(material.uniforms.spotColor, 'value').name('Spot Color');
+    // Defines and adds all the parameters to folders in GUI
+    addParameters();
 
     // RENDER WITH THE SHADERS
     render();
@@ -727,417 +604,503 @@
       requestAnimationFrame( render );
     }
 
+    // Defines and adds all the parameters to folders in GUI
+    function addParameters() {
+
+      // Lights
+      lightFolder.add(material.uniforms.lightsOn, 'value', true).name('Environment lights');
+      lightFolder.add(material.uniforms.LightPosX, 'value', -10000, 10000, 1.0).name('Light pos X');
+      lightFolder.add(material.uniforms.LightPosY, 'value', -10000, 10000, 1.0).name('Light pos Y');
+      lightFolder.add(material.uniforms.LightPosZ, 'value', -10000, 10000, 1.0).name('Light pos Z');
+      lightFolder.add(material.uniforms.Shininess, 'value', 1.0, 20.0, 1.0).name('Shine');
+      lightFolder.add(material.uniforms.lightIntensity, 'value', 0.0, 1.0, 0.01).name('Intensity');
+
+      // Lights colors
+      lightFolder.addColor(material.uniforms.Ka, 'value').name('Ambilight color');
+      lightFolder.addColor(material.uniforms.Kd, 'value').name('Diffuse color');
+      lightFolder.addColor(material.uniforms.Ks, 'value').name('Specular color');
+
+      // Iris parameters
+      irisFolder.add(material.uniforms.pupilSize, 'value', 0.0, 0.2, 0.001).name('Pupil size');
+      irisFolder.add(material.uniforms.irisSize, 'value', 0.0, 1.0, 0.001).name('Iris size');
+      irisFolder.add(material.uniforms.noiseContrast, 'value', 0.0, 1.0, 0.001).name('Noise constrast');
+      irisFolder.add(material.uniforms.noiseAngle, 'value', 0.0, 100.0, 1.0).name('Noise angle');
+      irisFolder.add(material.uniforms.noiseRadius, 'value', 0.0, 100.0, 1.0).name('Noise radius');
+      irisFolder.add(material.uniforms.spotSize, 'value', 0.0, 60, 1.0).name('Spot size');
+      irisFolder.add(material.uniforms.spotDensity, 'value', 0.0, 60, 1.0).name('Spot density');
+      irisFolder.add(material.uniforms.waveSize, 'value', 0.0, 0.5, 0.001).name('Wave size');
+      irisFolder.add(material.uniforms.waveDensity, 'value', 0.0, 30.0, 0.001).name('Wave density');
+      irisFolder.add(material.uniforms.innerColorSize, 'value', 0.0, 0.2, 0.001).name('Inner color size');
+      irisFolder.add(material.uniforms.outerCircle, 'value', 0.0, 1.5, 0.01).name('Outer circle');
+
+      // True or false for fibers
+      irisFolder.add(material.uniforms.lightFiberOn, 'value', false).name('lightFibers ON');
+      irisFolder.add(material.uniforms.darkFiberOn, 'value', false).name('darkFiber ON');
+
+      // Iris colors
+      colorFolder.addColor(material.uniforms.irisGroundColor, 'value').name('Ground Color');
+      colorFolder.addColor(material.uniforms.irisColor2, 'value').name('Second color');
+      colorFolder.add(material.uniforms.irisColor2On, 'value', true).name('Second color ON');
+      colorFolder.add(material.uniforms.innerColorOn, 'value', false).name('Inner color ON');
+      colorFolder.addColor(material.uniforms.innerColor, 'value').name('Inner Color');
+      colorFolder.addColor(material.uniforms.lightFiber, 'value').name('Light fiber');
+      colorFolder.addColor(material.uniforms.darkFiber, 'value').name('Dark fiber');
+      colorFolder.addColor(material.uniforms.spotColor, 'value').name('Spot Color');
+
+    }
+
+    // Remebers all the parameters in GUI
+    function rememberParam() {
+
+    // Remeber all the variables - Better way to do this?
+      myGui.remember(material.uniforms.lightsOn);
+      myGui.remember(material.uniforms.LightPosX);
+      myGui.remember(material.uniforms.LightPosY);
+      myGui.remember(material.uniforms.LightPosZ);
+      myGui.remember(material.uniforms.Shininess);
+      myGui.remember(material.uniforms.lightIntensity);
+
+      myGui.remember(material.uniforms.Ka);
+      myGui.remember(material.uniforms.Kd);
+      myGui.remember(material.uniforms.Ks);
+
+      myGui.remember(material.uniforms.pupilSize);
+      myGui.remember(material.uniforms.irisSize);
+      myGui.remember(material.uniforms.noiseContrast);
+      myGui.remember(material.uniforms.noiseAngle);
+      myGui.remember(material.uniforms.noiseRadius);
+      myGui.remember(material.uniforms.innerColorSize);
+
+      myGui.remember(material.uniforms.spotSize);
+      myGui.remember(material.uniforms.spotDensity);
+      myGui.remember(material.uniforms.waveSize);
+      myGui.remember(material.uniforms.waveDensity);
+      myGui.remember(material.uniforms.lightFiberOn);
+      myGui.remember(material.uniforms.darkFiberOn);
+      myGui.remember(material.uniforms.outerCircle);
+
+      myGui.remember(material.uniforms.irisGroundColor);
+      myGui.remember(material.uniforms.irisColor2);
+      myGui.remember(material.uniforms.irisColor2On);
+      myGui.remember(material.uniforms.innerColorOn);
+      myGui.remember(material.uniforms.innerColor);
+      myGui.remember(material.uniforms.lightFiber);
+      myGui.remember(material.uniforms.darkFiber);
+      myGui.remember(material.uniforms.spotColor);
+
+    }
+
+    // Loads and saves the remebered parameters in GUI
     function getPresetJSON() {
       return {
-  "preset": "Vampire",
-  "remembered": {
-    "Blue": {
-      "0": {
-        "value": true
-      },
-      "1": {
-        "value": -1000
-      },
-      "2": {
-        "value": 900
-      },
-      "3": {
-        "value": -300
-      },
-      "4": {
-        "value": 10
-      },
-      "5": {
-        "value": 0.7000000000000001
-      },
-      "6": {
-        "value": [
-          255,
-          255,
-          255
-        ]
-      },
-      "7": {
-        "value": [
-          204,
-          153,
-          102
-        ]
-      },
-      "8": {
-        "value": [
-          204,
-          153,
-          102
-        ]
-      },
-      "9": {
-        "value": 0.04
-      },
-      "10": {
-        "value": 0.2
-      },
-      "11": {
-        "value": 0.113
-      },
-      "12": {
-        "value": 20
-      },
-      "13": {
-        "value": 1
-      },
-      "14": {
-        "value": 0.13
-      },
-      "15": {
-        "value": 7
-      },
-      "16": {
-        "value": 8
-      },
-      "17": {
-        "value": 0.03
-      },
-      "18": {
-        "value": 3.383
-      },
-      "19": {
-        "value": true
-      },
-      "20": {
-        "value": true
-      },
-      "21": {
-        "value": 0.7000000000000001
-      },
-      "22": {
-        "value": [
-          42,
-          79,
-          94
-        ]
-      },
-      "23": {
-        "value": [
-          137,
-          159,
-          214
-        ]
-      },
-      "24": {
-        "value": true
-      },
-      "25": {
-        "value": true
-      },
-      "26": {
-        "value": [
-          148,
-          108,
-          5
-        ]
-      },
-      "27": {
-        "value": [
-          255,
-          255,
-          255
-        ]
-      },
-      "28": {
-        "value": [
-          0,
-          0,
-          0
-        ]
-      },
-      "29": {
-        "value": [
-          81,
-          66,
-          14
-        ]
+        "preset": "Vampire",
+        "remembered": {
+          "Blue": {
+            "0": {
+              "value": true
+            },
+            "1": {
+              "value": -1000
+            },
+            "2": {
+              "value": 900
+            },
+            "3": {
+              "value": -300
+            },
+            "4": {
+              "value": 10
+            },
+            "5": {
+              "value": 0.7000000000000001
+            },
+            "6": {
+              "value": [
+                255,
+                255,
+                255
+              ]
+            },
+            "7": {
+              "value": [
+                204,
+                153,
+                102
+              ]
+            },
+            "8": {
+              "value": [
+                204,
+                153,
+                102
+              ]
+            },
+            "9": {
+              "value": 0.04
+            },
+            "10": {
+              "value": 0.2
+            },
+            "11": {
+              "value": 0.113
+            },
+            "12": {
+              "value": 20
+            },
+            "13": {
+              "value": 1
+            },
+            "14": {
+              "value": 0.13
+            },
+            "15": {
+              "value": 7
+            },
+            "16": {
+              "value": 8
+            },
+            "17": {
+              "value": 0.03
+            },
+            "18": {
+              "value": 3.383
+            },
+            "19": {
+              "value": true
+            },
+            "20": {
+              "value": true
+            },
+            "21": {
+              "value": 0.7000000000000001
+            },
+            "22": {
+              "value": [
+                42,
+                79,
+                94
+              ]
+            },
+            "23": {
+              "value": [
+                137,
+                159,
+                214
+              ]
+            },
+            "24": {
+              "value": true
+            },
+            "25": {
+              "value": true
+            },
+            "26": {
+              "value": [
+                148,
+                108,
+                5
+              ]
+            },
+            "27": {
+              "value": [
+                255,
+                255,
+                255
+              ]
+            },
+            "28": {
+              "value": [
+                0,
+                0,
+                0
+              ]
+            },
+            "29": {
+              "value": [
+                81,
+                66,
+                14
+              ]
+            }
+          },
+          "Brown": {
+            "0": {
+              "value": true
+            },
+            "1": {
+              "value": -1000
+            },
+            "2": {
+              "value": 900
+            },
+            "3": {
+              "value": -300
+            },
+            "4": {
+              "value": 10
+            },
+            "5": {
+              "value": 0.7000000000000001
+            },
+            "6": {
+              "value": [
+                255,
+                255,
+                255
+              ]
+            },
+            "7": {
+              "value": [
+                204,
+                153,
+                102
+              ]
+            },
+            "8": {
+              "value": [
+                204,
+                153,
+                102
+              ]
+            },
+            "9": {
+              "value": 0.051000000000000004
+            },
+            "10": {
+              "value": 0.201
+            },
+            "11": {
+              "value": 0.774
+            },
+            "12": {
+              "value": 6
+            },
+            "13": {
+              "value": 9
+            },
+            "14": {
+              "value": 0.137
+            },
+            "15": {
+              "value": 7
+            },
+            "16": {
+              "value": 3
+            },
+            "17": {
+              "value": 0
+            },
+            "18": {
+              "value": 0
+            },
+            "19": {
+              "value": false
+            },
+            "20": {
+              "value": true
+            },
+            "21": {
+              "value": 0.75
+            },
+            "22": {
+              "value": [
+                198.8528995513916,
+                101.63232459735306,
+                13.470633310186667
+              ]
+            },
+            "23": {
+              "value": [
+                137.64202423095705,
+                86.96856522087302,
+                28.59398799764737
+              ]
+            },
+            "24": {
+              "value": true
+            },
+            "25": {
+              "value": true
+            },
+            "26": {
+              "value": [
+                96.80941772460938,
+                50.69728598612145,
+                8.494222811534998
+              ]
+            },
+            "27": {
+              "value": [
+                255,
+                255,
+                255
+              ]
+            },
+            "28": {
+              "value": [
+                0,
+                0,
+                0
+              ]
+            },
+            "29": {
+              "value": [
+                78.92681121826172,
+                41.09772895164724,
+                14.028585539851342
+              ]
+            }
+          },
+          "Vampire": {
+            "0": {
+              "value": true
+            },
+            "1": {
+              "value": -1000
+            },
+            "2": {
+              "value": 900
+            },
+            "3": {
+              "value": -300
+            },
+            "4": {
+              "value": 10
+            },
+            "5": {
+              "value": 0.7000000000000001
+            },
+            "6": {
+              "value": [
+                255,
+                255,
+                255
+              ]
+            },
+            "7": {
+              "value": [
+                204,
+                153,
+                102
+              ]
+            },
+            "8": {
+              "value": [
+                204,
+                153,
+                102
+              ]
+            },
+            "9": {
+              "value": 0.029
+            },
+            "10": {
+              "value": 0.201
+            },
+            "11": {
+              "value": 0.366
+            },
+            "12": {
+              "value": 5
+            },
+            "13": {
+              "value": 0
+            },
+            "14": {
+              "value": 0.113
+            },
+            "15": {
+              "value": 8
+            },
+            "16": {
+              "value": 46
+            },
+            "17": {
+              "value": 0
+            },
+            "18": {
+              "value": 0
+            },
+            "19": {
+              "value": false
+            },
+            "20": {
+              "value": true
+            },
+            "21": {
+              "value": 0.8300000000000001
+            },
+            "22": {
+              "value": [
+                175.9028995513916,
+                0,
+                0
+              ]
+            },
+            "23": {
+              "value": [
+                114.69202423095705,
+                4.328671881314372,
+                11.1010236158607
+              ]
+            },
+            "24": {
+              "value": true
+            },
+            "25": {
+              "value": true
+            },
+            "26": {
+              "value": [
+                63.659417724609376,
+                0,
+                0
+              ]
+            },
+            "27": {
+              "value": [
+                255,
+                255,
+                255
+              ]
+            },
+            "28": {
+              "value": [
+                0,
+                0,
+                0
+              ]
+            },
+            "29": {
+              "value": [
+                104.42681121826172,
+                6.029781523738062,
+                6.029781523738062
+              ]
+            }
+          }
+        },
+        "closed": false,
+        "folders": {
+          "Iris details": {
+            "preset": "Default",
+            "closed": true,
+            "folders": {}
+          },
+          "Colors": {
+            "preset": "Default",
+            "closed": true,
+            "folders": {}
+          },
+          "Lights": {
+            "preset": "Default",
+            "closed": true,
+            "folders": {}
+          }
+        }
       }
-    },
-    "Brown": {
-      "0": {
-        "value": true
-      },
-      "1": {
-        "value": -1000
-      },
-      "2": {
-        "value": 900
-      },
-      "3": {
-        "value": -300
-      },
-      "4": {
-        "value": 10
-      },
-      "5": {
-        "value": 0.7000000000000001
-      },
-      "6": {
-        "value": [
-          255,
-          255,
-          255
-        ]
-      },
-      "7": {
-        "value": [
-          204,
-          153,
-          102
-        ]
-      },
-      "8": {
-        "value": [
-          204,
-          153,
-          102
-        ]
-      },
-      "9": {
-        "value": 0.051000000000000004
-      },
-      "10": {
-        "value": 0.201
-      },
-      "11": {
-        "value": 0.774
-      },
-      "12": {
-        "value": 6
-      },
-      "13": {
-        "value": 9
-      },
-      "14": {
-        "value": 0.137
-      },
-      "15": {
-        "value": 7
-      },
-      "16": {
-        "value": 3
-      },
-      "17": {
-        "value": 0
-      },
-      "18": {
-        "value": 0
-      },
-      "19": {
-        "value": false
-      },
-      "20": {
-        "value": true
-      },
-      "21": {
-        "value": 0.75
-      },
-      "22": {
-        "value": [
-          198.8528995513916,
-          101.63232459735306,
-          13.470633310186667
-        ]
-      },
-      "23": {
-        "value": [
-          137.64202423095705,
-          86.96856522087302,
-          28.59398799764737
-        ]
-      },
-      "24": {
-        "value": true
-      },
-      "25": {
-        "value": true
-      },
-      "26": {
-        "value": [
-          96.80941772460938,
-          50.69728598612145,
-          8.494222811534998
-        ]
-      },
-      "27": {
-        "value": [
-          255,
-          255,
-          255
-        ]
-      },
-      "28": {
-        "value": [
-          0,
-          0,
-          0
-        ]
-      },
-      "29": {
-        "value": [
-          78.92681121826172,
-          41.09772895164724,
-          14.028585539851342
-        ]
-      }
-    },
-    "Vampire": {
-      "0": {
-        "value": true
-      },
-      "1": {
-        "value": -1000
-      },
-      "2": {
-        "value": 900
-      },
-      "3": {
-        "value": -300
-      },
-      "4": {
-        "value": 10
-      },
-      "5": {
-        "value": 0.7000000000000001
-      },
-      "6": {
-        "value": [
-          255,
-          255,
-          255
-        ]
-      },
-      "7": {
-        "value": [
-          204,
-          153,
-          102
-        ]
-      },
-      "8": {
-        "value": [
-          204,
-          153,
-          102
-        ]
-      },
-      "9": {
-        "value": 0.029
-      },
-      "10": {
-        "value": 0.201
-      },
-      "11": {
-        "value": 0.366
-      },
-      "12": {
-        "value": 5
-      },
-      "13": {
-        "value": 0
-      },
-      "14": {
-        "value": 0.113
-      },
-      "15": {
-        "value": 8
-      },
-      "16": {
-        "value": 46
-      },
-      "17": {
-        "value": 0
-      },
-      "18": {
-        "value": 0
-      },
-      "19": {
-        "value": false
-      },
-      "20": {
-        "value": true
-      },
-      "21": {
-        "value": 0.8300000000000001
-      },
-      "22": {
-        "value": [
-          175.9028995513916,
-          0,
-          0
-        ]
-      },
-      "23": {
-        "value": [
-          114.69202423095705,
-          4.328671881314372,
-          11.1010236158607
-        ]
-      },
-      "24": {
-        "value": true
-      },
-      "25": {
-        "value": true
-      },
-      "26": {
-        "value": [
-          63.659417724609376,
-          0,
-          0
-        ]
-      },
-      "27": {
-        "value": [
-          255,
-          255,
-          255
-        ]
-      },
-      "28": {
-        "value": [
-          0,
-          0,
-          0
-        ]
-      },
-      "29": {
-        "value": [
-          104.42681121826172,
-          6.029781523738062,
-          6.029781523738062
-        ]
-      }
-    }
-  },
-  "closed": false,
-  "folders": {
-    "Iris details": {
-      "preset": "Default",
-      "closed": true,
-      "folders": {}
-    },
-    "Colors": {
-      "preset": "Default",
-      "closed": true,
-      "folders": {}
-    },
-    "Lights": {
-      "preset": "Default",
-      "closed": true,
-      "folders": {}
-    }
-  }
-}
 
     }
-
 
 
   </script>
